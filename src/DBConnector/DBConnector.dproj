@@ -1,0 +1,214 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{542b26f4-0e16-4eb5-baa0-f0b8b5269549}</ProjectGuid>
+			<MainSource>DBConnector.dpr</MainSource>
+			<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+			<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
+			<ProjectVersion>12.0</ProjectVersion>
+			<Config Condition="'$(Config)'==''">Debug</Config>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
+			<Cfg_1>true</Cfg_1>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
+			<Cfg_2>true</Cfg_2>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_UnitSearchPath>..\MyPub;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\MyPub\TfHintTree;..\MyPub\TfDBGrid;..\OtherPub;..\OtherPub\mysql;..\OtherPub\cnvcl;..\OtherPub\cnvcl\Source\Common;..\OtherPub\cnvcl\Source\Graphics;..\OtherPub\Synedit\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\OtherPub\AlphaControls\AlphaControls8.20dcu\D2010\;..\OtherPub\sqlite\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_DependencyCheckOutputName>DBConnector.exe</DCC_DependencyCheckOutputName>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
+			<DCC_DcuOutput>dcu</DCC_DcuOutput>
+			<DCC_ExeOutput>..\MyTools\DBConnector</DCC_ExeOutput>
+			<Version>7.0</Version>
+			<DCC_DebugInformation>False</DCC_DebugInformation>
+			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
+			<Version>7.0</Version>
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+			<DCC_ExeOutput>..\MyTools\DBConnector</DCC_ExeOutput>
+			<DCC_DcuOutput>dcu</DCC_DcuOutput>
+			<DCC_ObjOutput>dcu</DCC_ObjOutput>
+			<DCC_HppOutput>dcu</DCC_HppOutput>
+			<DCC_UnitSearchPath>..\OtherPub\Synedit5.7Fix1;..\OtherPub\cnpack\Source\Graphics;..\OtherPub\cnpack\Source\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_ResourcePath>..\MyPub\TfDBGrid;..\MyPub;..\OtherPub\Synedit5.7Fix1;..\OtherPub\cnpack\Source\Graphics;..\OtherPub\cnpack\Source\Common;..\OtherPub\ZMUI;$(DCC_ResourcePath)</DCC_ResourcePath>
+			<DCC_ObjPath>..\MyPub\TfDBGrid;..\MyPub;..\OtherPub\Synedit5.7Fix1;..\OtherPub\cnpack\Source\Graphics;..\OtherPub\cnpack\Source\Common;..\OtherPub\ZMUI;$(DCC_ObjPath)</DCC_ObjPath>
+			<DCC_IncludePath>..\MyPub\TfDBGrid;..\MyPub;..\OtherPub\Synedit5.7Fix1;..\OtherPub\cnpack\Source\Graphics;..\OtherPub\cnpack\Source\Common;..\OtherPub\ZMUI;$(DCC_IncludePath)</DCC_IncludePath>
+			<DCC_Optimize>False</DCC_Optimize>
+		</PropertyGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
+			<Borland.ProjectType>VCLApplication</Borland.ProjectType>
+			<BorlandProject>
+				<Delphi.Personality>
+					<Parameters>
+						<Parameters Name="UseLauncher">False</Parameters>
+						<Parameters Name="LoadAllSymbols">True</Parameters>
+						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
+					</Parameters>
+					<VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
+						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
+						<VersionInfo Name="MajorVer">0</VersionInfo>
+						<VersionInfo Name="MinorVer">9</VersionInfo>
+						<VersionInfo Name="Release">2</VersionInfo>
+						<VersionInfo Name="Build">1201</VersionInfo>
+						<VersionInfo Name="Debug">False</VersionInfo>
+						<VersionInfo Name="PreRelease">False</VersionInfo>
+						<VersionInfo Name="Special">False</VersionInfo>
+						<VersionInfo Name="Private">False</VersionInfo>
+						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="Locale">2052</VersionInfo>
+						<VersionInfo Name="CodePage">936</VersionInfo>
+					</VersionInfo>
+					<VersionInfoKeys>
+						<VersionInfoKeys Name="CompanyName"/>
+						<VersionInfoKeys Name="FileDescription">集成多数据库访问功能的数据库工具</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.9.2.1201</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName"/>
+						<VersionInfoKeys Name="LegalCopyright"/>
+						<VersionInfoKeys Name="LegalTrademarks"/>
+						<VersionInfoKeys Name="OriginalFilename"/>
+						<VersionInfoKeys Name="ProductName">DBTool</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="Comments"/>
+					</VersionInfoKeys>
+					<Source>
+						<Source Name="MainSource">DBConnector.dpr</Source>
+					</Source>
+					<Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k100.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclofficexp100.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+					</Excluded_Packages>
+				</Delphi.Personality>
+			</BorlandProject>
+			<ProjectFileVersion>12</ProjectFileVersion>
+		</ProjectExtensions>
+		<ItemGroup>
+			<DelphiCompile Include="DBConnector.dpr">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<DCCReference Include="UF_MAIN.pas">
+				<Form>F_MAIN</Form>
+			</DCCReference>
+			<DCCReference Include="U_Const.pas"/>
+			<DCCReference Include="U_Pub.pas"/>
+			<DCCReference Include="..\MyPub\common\U_CommonFunc.pas"/>
+			<DCCReference Include="..\MyPub\UF_Find.pas">
+				<Form>F_Find</Form>
+			</DCCReference>
+			<DCCReference Include="..\MyPub\Log\U_LogManager.pas"/>
+			<DCCReference Include="..\MyPub\UI\U_UIUtil.pas"/>
+			<DCCReference Include="..\MyPub\IO\U_FileUtil.pas"/>
+			<DCCReference Include="..\MyPub\U_ThreadUtil.pas"/>
+			<DCCReference Include="UF_About.pas">
+				<Form>F_About</Form>
+			</DCCReference>
+			<DCCReference Include="U_Ini.pas"/>
+			<DCCReference Include="UF_BaseDialog.pas">
+				<Form>F_BaseDialog</Form>
+			</DCCReference>
+			<DCCReference Include="UF_DBOption.pas">
+				<Form>F_DBOption</Form>
+			</DCCReference>
+			<DCCReference Include="UFM_DBOperate.pas">
+				<Form>FM_DBOperate</Form>
+				<DesignClass>TFrame</DesignClass>
+			</DCCReference>
+			<DCCReference Include="..\MyPub\common\U_fStrUtil.pas"/>
+			<DCCReference Include="UF_ExportResult.pas">
+				<Form>F_ExportResult</Form>
+			</DCCReference>
+			<DCCReference Include="UF_ExecScript.pas">
+				<Form>F_ExecScript</Form>
+			</DCCReference>
+			<DCCReference Include="UF_Tip.pas">
+				<Form>F_Tip</Form>
+			</DCCReference>
+			<DCCReference Include="U_PluginMsg.pas"/>
+			<DCCReference Include="..\MyPub\Console\U_DosConsole.pas"/>
+			<DCCReference Include="U_Plugin.pas"/>
+			<DCCReference Include="UF_ConsoleView.pas">
+				<Form>F_ConsoleView</Form>
+			</DCCReference>
+			<DCCReference Include="..\MyPub\common\U_PlanarList.pas"/>
+			<DCCReference Include="..\MyPub\db\DBEngine\U_DBEngine.pas"/>
+			<DCCReference Include="..\MyPub\db\DBEngine\U_ADODBEngine.pas"/>
+			<DCCReference Include="..\MyPub\db\DBEngine\U_BDEDBEngine.pas"/>
+			<DCCReference Include="..\MyPub\db\DBEngine\U_DBExpressEngine.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_DBConnect.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_AccessDBConnect.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_OracleDBConnect.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_MySQLDBConnect.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_SybaseDBConnect.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_DBConnnectManager.pas"/>
+			<DCCReference Include="..\MyPub\DB\U_DBUtil.pas"/>
+			<DCCReference Include="UF_Rename.pas">
+				<Form>F_Rename</Form>
+			</DCCReference>
+			<DCCReference Include="U_PubFunc.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_TableInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_FieldInfo.pas"/>
+			<DCCReference Include="..\MyPub\DB\U_DBConfig.pas"/>
+			<DCCReference Include="..\MyPub\DB\SQL\U_SQLBuilder.pas"/>
+			<DCCReference Include="U_DBConnectorInConsole.pas"/>
+			<DCCReference Include="UF_ExportTables.pas">
+				<Form>F_ExportTables</Form>
+			</DCCReference>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_OracleTableInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_AccessFieldInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_OracleFieldInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_MySqlFieldInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_SybaseFieldInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_AccessTableInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_MySqlTableInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_SybaseTableInfo.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_TableInfoFactory.pas"/>
+			<DCCReference Include="..\MyPub\db\DBConnect\U_FieldInfoFactory.pas"/>
+			<DCCReference Include="..\MyPub\DB\DBConnect\U_DBCommand.pas"/>
+			<DCCReference Include="U_DataMoudle.pas">
+				<Form>DataModule1</Form>
+				<DesignClass>TDataModule</DesignClass>
+			</DCCReference>
+			<DCCReference Include="U_DBTreeFunc.pas"/>
+			<DCCReference Include="U_DBAHelp.pas"/>
+			<DCCReference Include="..\MyPub\Office\U_ExcelExportor.pas"/>
+			<DCCReference Include="..\MyPub\DB\U_DBExport.pas"/>
+			<DCCReference Include="..\MyPub\U_Convertor.pas"/>
+			<DCCReference Include="..\MyPub\U_TextFileWriter.pas"/>
+			<DCCReference Include="..\MyPub\DB\DBConnect\U_TriggerInfo.pas"/>
+			<DCCReference Include="..\MyPub\DB\DBConnect\U_IndexInfo.pas"/>
+			<DCCReference Include="..\MyPub\DB\U_DBConnectInterface.pas"/>
+			<DCCReference Include="..\MyPub\DB\U_DBEngineInterface.pas"/>
+			<DCCReference Include="..\MyPub\DB\DBEngine\U_DBEngineFactory.pas"/>
+			<DCCReference Include="..\MyPub\DB\SQL\U_SqlUtils.pas"/>
+			<DCCReference Include="..\MyPub\DB\DBEngine\U_SQLiteDBEngine.pas"/>
+			<DCCReference Include="..\MyPub\DB\DBConnect\U_SQLiteDBConnect.pas"/>
+			<BuildConfiguration Include="Base">
+				<Key>Base</Key>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Release">
+				<Key>Cfg_1</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Debug">
+				<Key>Cfg_2</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+	</Project>

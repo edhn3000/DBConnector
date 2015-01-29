@@ -1,0 +1,39 @@
+object F_Rename: TF_Rename
+  Left = 299
+  Top = 253
+  BorderStyle = bsDialog
+  Caption = #37325#21629#21517
+  ClientHeight = 137
+  ClientWidth = 306
+  Color = clBtnFace
+  Font.Charset = ANSI_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = #23435#20307
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poMainFormCenter
+  OnShow = FormShow
+  PixelsPerInch = 96
+  TextHeight = 12
+  object btnOK: TButton
+    Left = 208
+    Top = 88
+    Width = 75
+    Height = 25
+    Caption = #30830#23450
+    Default = True
+    TabOrder = 1
+    OnClick = btnOKClick
+  end
+  object LabeledEdit1: TLabeledEdit
+    Left = 32
+    Top = 48
+    Width = 249
+    Height = 20
+    EditLabel.Width = 84
+    EditLabel.Height = 12
+    EditLabel.Caption = #35831#36755#20837#26032#30340#21517#31216
+    TabOrder = 0
+  end
+end

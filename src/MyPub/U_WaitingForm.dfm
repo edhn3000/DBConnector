@@ -1,0 +1,60 @@
+object WaitingForm: TWaitingForm
+  Left = 418
+  Top = 321
+  BorderIcons = []
+  BorderStyle = bsNone
+  Caption = 'WaitingForm'
+  ClientHeight = 112
+  ClientWidth = 342
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = #23435#20307
+  Font.Style = []
+  FormStyle = fsStayOnTop
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  PixelsPerInch = 96
+  TextHeight = 12
+  object lblHint: TLabel
+    Left = 16
+    Top = 32
+    Width = 42
+    Height = 12
+    Caption = 'lblHint'
+  end
+  object lblTitle: TLabel
+    Left = 128
+    Top = 8
+    Width = 56
+    Height = 13
+    Caption = 'lblTitle'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = #23435#20307
+    Font.Style = []
+    ParentFont = False
+  end
+  object pnl1: TPanel
+    Left = 16
+    Top = 49
+    Width = 305
+    Height = 17
+    BevelOuter = bvNone
+    TabOrder = 0
+  end
+  object btnCancel: TButton
+    Left = 129
+    Top = 79
+    Width = 75
+    Height = 25
+    Caption = #21462#28040
+    TabOrder = 1
+    OnClick = btnCancelClick
+  end
+end

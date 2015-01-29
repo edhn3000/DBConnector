@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2009-04-07 16:13:08.894.pas,E:\MyProgram\Delphi\MyPub\U_DSON.pas=</Transaction>
+    <Transaction>2009-04-09 23:19:05.375.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\MyPub\U_TableInfo.pas</Transaction>
+    <Transaction>2009-04-09 23:19:24.187.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\MyPub\U_FieldInfo.pas</Transaction>
+    <Transaction>2009-04-11 23:28:43.578.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\MyPub\U_DBConfig.pas</Transaction>
+    <Transaction>2009-04-11 23:29:01.578.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\MyPub\U_SQLBuilder.pas</Transaction>
+    <Transaction>2009-04-17 14:09:45.665.pas,E:\MyProgram\Delphi\OtherPub\RegExpr.pas=</Transaction>
+    <Transaction>2009-08-28 16:31:27.812.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\DBConnector\UF_ExportTables.pas</Transaction>
+    <Transaction>2009-08-28 16:31:27.828.dfm,E:\MyProgram\Delphi\DBConnector\Unit1.dfm=E:\MyProgram\Delphi\DBConnector\UF_ExportTables.dfm</Transaction>
+    <Transaction>2014/12/05 15:55:04.772.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\MyPub\DB\DBEngine\U_SQLiteEngine.pas</Transaction>
+    <Transaction>2014/12/05 15:57:35.619.pas,E:\MyProgram\Delphi\MyPub\DB\DBEngine\U_SQLiteEngine.pas=E:\MyProgram\Delphi\MyPub\DB\DBEngine\U_SQLiteDBEngine.pas</Transaction>
+    <Transaction>2014/12/05 17:10:26.536.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\MyPub\DB\DBConnect\U_SQLiteDBConnect.pas</Transaction>
+    <Transaction>2015/01/29 14:31:46.293.pas,E:\MyProgram\Delphi\MyPub\U_UIUtil.pas=E:\MyProgram\Delphi\MyPub\UI\U_UIUtil.pas</Transaction>
+    <Transaction>2015/01/29 14:32:44.697.pas,E:\MyProgram\Delphi\MyPub\DB\U_SqlUtils.pas=E:\MyProgram\Delphi\MyPub\DB\SQL\U_SqlUtils.pas</Transaction>
+    <Transaction>2015/01/29 14:33:19.671.pas,E:\MyProgram\Delphi\MyPub\U_SQLBuilder.pas=E:\MyProgram\Delphi\MyPub\DB\SQL\U_SQLBuilder.pas</Transaction>
+    <Transaction>2015/01/29 14:34:01.476.pas,E:\MyProgram\Delphi\MyPub\U_Log.pas=E:\MyProgram\Delphi\MyPub\Log\U_Log.pas</Transaction>
+    <Transaction>2015/01/29 14:36:13.567.pas,E:\MyProgram\Delphi\MyPub\Log\U_Log.pas=E:\MyProgram\Delphi\MyPub\Log\U_LogManager.pas</Transaction>
+    <Transaction>2015/01/29 14:37:59.228.pas,E:\MyProgram\Delphi\MyPub\U_CommonFunc.pas=E:\MyProgram\Delphi\MyPub\common\U_CommonFunc.pas</Transaction>
+    <Transaction>2015/01/29 14:38:33.129.pas,E:\MyProgram\Delphi\MyPub\U_FileUtil.pas=E:\MyProgram\Delphi\MyPub\IO\U_FileUtil.pas</Transaction>
+    <Transaction>2015/01/29 14:38:55.069.pas,E:\MyProgram\Delphi\MyPub\U_DosConsole.pas=E:\MyProgram\Delphi\MyPub\Console\U_DosConsole.pas</Transaction>
+    <Transaction>2015/01/29 14:39:40.632.pas,E:\MyProgram\Delphi\MyPub\U_DBConfig.pas=E:\MyProgram\Delphi\MyPub\DB\U_DBConfig.pas</Transaction>
+    <Transaction>2015/01/29 14:39:49.402.pas,E:\MyProgram\Delphi\MyPub\U_DBUtil.pas=E:\MyProgram\Delphi\MyPub\DB\U_DBUtil.pas</Transaction>
+    <Transaction>2015/01/29 14:40:38.365.pas,E:\MyProgram\Delphi\MyPub\U_fStrUtil.pas=E:\MyProgram\Delphi\MyPub\common\U_fStrUtil.pas</Transaction>
+    <Transaction>2015/01/29 14:40:43.101.pas,E:\MyProgram\Delphi\MyPub\U_PlanarList.pas=E:\MyProgram\Delphi\MyPub\common\U_PlanarList.pas</Transaction>
+    <Transaction>2015/01/29 14:41:20.829.pas,E:\MyProgram\Delphi\MyPub\U_ExcelExportor.pas=E:\MyProgram\Delphi\MyPub\Office\U_ExcelExportor.pas</Transaction>
+  </Transactions>
+</BorlandProject>
