@@ -7,7 +7,7 @@
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
 			<ProjectVersion>12.0</ProjectVersion>
-			<Config Condition="'$(Config)'==''">Debug</Config>
+			<Config Condition="'$(Config)'==''">Release</Config>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
 			<Base>true</Base>
@@ -23,13 +23,12 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_UnitSearchPath>..\MyPub;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\MyPub\TfHintTree;..\MyPub\TfDBGrid;..\OtherPub;..\OtherPub\mysql;..\OtherPub\cnvcl;..\OtherPub\cnvcl\Source\Common;..\OtherPub\cnvcl\Source\Graphics;..\OtherPub\Synedit\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\OtherPub\AlphaControls\AlphaControls8.20dcu\D2010\;..\OtherPub\sqlite\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-			<DCC_DependencyCheckOutputName>DBConnector.exe</DCC_DependencyCheckOutputName>
-		</PropertyGroup>
-		<PropertyGroup Condition="'$(Cfg_1)'!=''">
-			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
 			<DCC_DcuOutput>dcu</DCC_DcuOutput>
 			<DCC_ExeOutput>..\MyTools\DBConnector</DCC_ExeOutput>
+			<DCC_UnitSearchPath>..\MyPub;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\Components\TfHintTree;..\Components\TfDBGrid;..\OtherPub;..\OtherPub\mysql;..\OtherPub\cnvcl;..\OtherPub\cnvcl\Source\Common;..\OtherPub\cnvcl\Source\Graphics;..\OtherPub\Synedit\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\OtherPub\AlphaControls\AlphaControls8.20dcu\D2010\;..\OtherPub\sqlite\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<Version>7.0</Version>
 			<DCC_DebugInformation>False</DCC_DebugInformation>
 			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
@@ -37,14 +36,10 @@
 			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2)'!=''">
-			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
 			<Version>7.0</Version>
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
-			<DCC_ExeOutput>..\MyTools\DBConnector</DCC_ExeOutput>
-			<DCC_DcuOutput>dcu</DCC_DcuOutput>
 			<DCC_ObjOutput>dcu</DCC_ObjOutput>
 			<DCC_HppOutput>dcu</DCC_HppOutput>
-			<DCC_UnitSearchPath>..\OtherPub\Synedit5.7Fix1;..\OtherPub\cnpack\Source\Graphics;..\OtherPub\cnpack\Source\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_ResourcePath>..\MyPub\TfDBGrid;..\MyPub;..\OtherPub\Synedit5.7Fix1;..\OtherPub\cnpack\Source\Graphics;..\OtherPub\cnpack\Source\Common;..\OtherPub\ZMUI;$(DCC_ResourcePath)</DCC_ResourcePath>
 			<DCC_ObjPath>..\MyPub\TfDBGrid;..\MyPub;..\OtherPub\Synedit5.7Fix1;..\OtherPub\cnpack\Source\Graphics;..\OtherPub\cnpack\Source\Common;..\OtherPub\ZMUI;$(DCC_ObjPath)</DCC_ObjPath>
 			<DCC_IncludePath>..\MyPub\TfDBGrid;..\MyPub;..\OtherPub\Synedit5.7Fix1;..\OtherPub\cnpack\Source\Graphics;..\OtherPub\cnpack\Source\Common;..\OtherPub\ZMUI;$(DCC_IncludePath)</DCC_IncludePath>
@@ -66,7 +61,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">9</VersionInfo>
 						<VersionInfo Name="Release">2</VersionInfo>
-						<VersionInfo Name="Build">1201</VersionInfo>
+						<VersionInfo Name="Build">1501</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -78,12 +73,12 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription">集成多数据库访问功能的数据库工具</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.9.2.1201</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.9.2.1501</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>
 						<VersionInfoKeys Name="OriginalFilename"/>
-						<VersionInfoKeys Name="ProductName">DBTool</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductName">DBConnector</VersionInfoKeys>
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>

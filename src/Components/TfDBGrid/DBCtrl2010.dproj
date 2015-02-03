@@ -77,7 +77,7 @@
 						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
 					</Parameters>
 					<Language>
-						<Language Name="RootDir">E:\MyProgram\Delphi\MyPub\TfDBGrid\</Language>
+						<Language Name="RootDir">..\..\Components\TfDBGrid\</Language>
 					</Language>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
