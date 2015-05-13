@@ -385,7 +385,7 @@ var
   end;
 begin 
   if not bConnect then
-    Result := DBConnect.CloseDB
+    Result := g_Global.CloseDB
   else
   begin
     eDBType := DBconfig.DBType;
@@ -746,10 +746,12 @@ end;
 
 procedure TF_MAIN.FormCreate(Sender: TObject);
 begin
-  ReportMemoryLeaksOnShutdown := True;
+//  ReportMemoryLeaksOnShutdown := True;
+
   FslstNodes := TStringList.Create;
   FPluginList := TPluginList.Create(TPluginItem);
   FDBAHelpList := TDBAHelpList.Create(TDBAHelpItem);
+  frmDBOperateMain.Align := alClient;
   g_frmDBOperate := frmDBOperateMain;
   g_frmDBOperate.ShowClient(False);
 
@@ -843,6 +845,7 @@ begin
   g_DBTreeFunc.clearDBTree(tvwObjects);
   if Assigned(FThreadEditData) then
     FreeAndNil(FThreadEditData);
+
 end;
 
 procedure TF_MAIN.RefreshTree;

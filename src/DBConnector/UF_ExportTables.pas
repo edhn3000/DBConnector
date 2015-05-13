@@ -307,7 +307,7 @@ end;
 
 procedure TF_ExportTables.btnSelectClick(Sender: TObject);
 begin
-  edtExportFile.Text := BrowseFolder(edtExportFile.Text);
+  edtExportFile.Text := TFileUtil.BrowseFolder(edtExportFile.Text);
 end;
 
 procedure TF_ExportTables.AddDBTreeNodeChilds(tvw: TTreeView; Atnd: TTreeNode;

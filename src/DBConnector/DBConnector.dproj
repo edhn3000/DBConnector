@@ -7,7 +7,7 @@
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
 			<ProjectVersion>12.0</ProjectVersion>
-			<Config Condition="'$(Config)'==''">Release</Config>
+			<Config Condition="'$(Config)'==''">Debug</Config>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
 			<Base>true</Base>
@@ -23,9 +23,11 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
+			<DCC_UsePackage>rtl;vcl;vclx;vclimg;vclactnband;dbrtl;vcldb;bdertl;vcldbx;vcltouch;xmlrtl;dsnap;dsnapcon;vclib;ibxpress;adortl;IndyCore;IndySystem;IndyProtocols;VclSmp;vclie;inet;websnap;webdsnap;inetdb;inetdbbde;inetdbxpress;soaprtl;vclribbon;dbexpress;DbxCommonDriver;DataSnapIndy10ServerTransport;DataSnapProviderClient;DataSnapServer;DbxClientDriver;DBXInterBaseDriver;DBXMySQLDriver;dbxcds;DBXFirebirdDriver;DBXSybaseASEDriver;DBXSybaseASADriver;DBXOracleDriver;DBXMSSQLDriver;DBXInformixDriver;DBXDb2Driver;SynEdit_R2010;TeeTree2D14Tee9;TeePro914;TeeUI914;Tee914;TeeLanguage914;TeeImage914;TeeWorld914;TeeGL914;TeeDB914;TeeMaker114;DBCtrl2010;CnPack_D2010;intrawebdb_100_140;Intraweb_100_140;bsfd2010;NTKOPkg;fHintTree;acnt2010_R</DCC_UsePackage>
 			<DCC_DcuOutput>dcu</DCC_DcuOutput>
 			<DCC_ExeOutput>..\MyTools\DBConnector</DCC_ExeOutput>
-			<DCC_UnitSearchPath>..\MyPub;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\Components\TfHintTree;..\Components\TfDBGrid;..\OtherPub;..\OtherPub\mysql;..\OtherPub\cnvcl;..\OtherPub\cnvcl\Source\Common;..\OtherPub\cnvcl\Source\Graphics;..\OtherPub\Synedit\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\OtherPub\AlphaControls\AlphaControls8.20dcu\D2010\;..\OtherPub\sqlite\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_UnitSearchPath>..\MyPub;..\MyPub\Common;..\MyPub\IO;..\MyPub\Log;..\MyPub\regex;..\MyPub\UI;..\MyPub\Console;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\Components\TfHintTree;..\Components\TfDBGrid;..\OtherPub;..\OtherPub\mysql;..\OtherPub\cnvcl;..\OtherPub\cnvcl\Source\Common;..\OtherPub\cnvcl\Source\Graphics;..\OtherPub\Synedit\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\OtherPub\AlphaControls\AlphaControls8.20dcu\D2010\;..\OtherPub\sqlite\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
@@ -61,7 +63,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">9</VersionInfo>
 						<VersionInfo Name="Release">2</VersionInfo>
-						<VersionInfo Name="Build">1501</VersionInfo>
+						<VersionInfo Name="Build">1502</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -73,12 +75,12 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription">集成多数据库访问功能的数据库工具</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.9.2.1501</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.9.2.1502</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>
 						<VersionInfoKeys Name="OriginalFilename"/>
-						<VersionInfoKeys Name="ProductName">DBConnector</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductName">DBTool</VersionInfoKeys>
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>
@@ -86,8 +88,9 @@
 						<Source Name="MainSource">DBConnector.dpr</Source>
 					</Source>
 					<Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k100.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\dclofficexp100.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dcltee8140.bpl">TeeChart Standard 8 Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k140.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclofficexp140.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
 					</Excluded_Packages>
 				</Delphi.Personality>
 			</BorlandProject>

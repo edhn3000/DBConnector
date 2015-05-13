@@ -17,6 +17,11 @@ uses
   Windows, Classes, SysUtils, Generics.Collections, Generics.Defaults;
 
 type
+  TTextFormat=(tfAnsi,tfUnicode,tfUnicodeBigEndian,tfUtf8);
+const
+  TextFormatFlag:array[tfAnsi..tfUtf8] of word=($0000,$FFFE,$FEFF,$EFBB);　
+
+type
 { TFileFullInfo }
   TFileFullInfo = record
     FileName: string;
@@ -35,7 +40,6 @@ type
 
   { TFileItem }
   TFileItem = class
-  public
     FileName: String;
     CreateTime: TDateTime;
     ModifyTime: TDateTime;
@@ -105,46 +109,51 @@ type
     function GetFileItem(index: Integer): TFileItem;
   end;
 
-  // 连接多个目录，中间没有分隔符自动添加
-  function ConcatDir(asDirs: array of string): string;
-  // 连接多个脚本中的元素
-  function ConcatScript(asDirs: array of string): string;
+  { TFileUtil }
+  TFileUtil = class
+  public
+    //// 一般处理
+    // 连接多个目录，中间没有分隔符自动添加
+    class function ConcatDir(asDirs: array of string): string;
+    // 连接多个脚本中的元素
+    class function ConcatScript(asDirs: array of string): string;
+    // 去掉扩展名的文件名
+    class function RemoveFileExt(s: string): string;
+    class function ParseFileEncoding(const FileName: string): TEncoding;
+    class function ParseFileEncoding2(const FileName: string): TEncoding;
 
-  // 去掉扩展名的文件名
-  function RemoveFileExt(s: string): string;
+    ////文件检索类
+    // 查找指定目录下某扩展名的文件，默认步包含子目录，结果中不包含目录名
+    class procedure FindFiles(sPath, sFileExt: string; AStrs: TStrings;
+        SubDir: Boolean = False;ShowDir: Boolean = False);
+    class procedure FindDirs(sPath: string; AStrs: TStrings; SubDir: Boolean = False);
+    // 找到改动过的文件，未完成
+    class procedure FindChangedFile(sPath: string; FileList: TFileList);
 
-  // 查找指定目录下某扩展名的文件，默认步包含子目录，结果中不包含目录名
-  procedure FindFiles(sPath, sFileExt: string; AStrs: TStrings;
-      SubDir: Boolean = False;ShowDir: Boolean = False);
-  procedure FindDirs(sPath: string; AStrs: TStrings; SubDir: Boolean = False);
-  // 未完成
-  procedure FindChangedFile(sPath: string; FileList: TFileList);
+    // 拷贝文件列表到目的目录，根据bChangeDir决定拷贝完成后是否更改源文件目录为目的目录
+    class function CopyListFiles(SourceFiles: TStrings;sDestDir: string;bChangeDir:
+        Boolean): Boolean;
+    class function CopyDirFiles(ASourceDir, ADestDir: string; CopySub: Boolean = True;
+        FileExt: string = '*.*'):Boolean;
 
-  // 拷贝文件列表到目的目录，根据bChangeDir决定拷贝完成后是否更改源文件目录为目的目录
-  function CopyListFiles(SourceFiles: TStrings;sDestDir: string;bChangeDir:
-      Boolean): Boolean;
-  function CopyDirFiles(ASourceDir, ADestDir: string; CopySub: Boolean = True;
-      FileExt: string = '*.*'):Boolean;
+    //// 文件、目录状态检查和控制
+    class function ForceDeleteDir(sDir: string): Integer;
+    class function BrowseFolder(const Folder: string): string;
+    // 参数2是否参数1的直接子目录
+    class function IsDirectSubDir(sDirMain, sDirSub: string):Boolean;
+    class function IsFileInUse(AFileName: string): Boolean;
+    class function IsDirInUse(ADir: string): Boolean;
 
-  procedure FileRemoveReadOnly(sFile: string);
-
-  function IsDirectSubDir(sDirMain, sDirSub: string):Boolean;
-
-  // 获取文件的详细信息
-  function GetFileFullInfo(AFileName: string): TFileFullInfo;
-  function CovFileDate(Fd:_FileTime):TDateTime;
-
-  // 显示文件属性窗口
-  procedure ShowFilePropWindow(AFileName: string);
-
-  function IsFileInUse(AFileName: string): Boolean;
-  function IsDirInUse(ADir: string): Boolean;
-
-  function GetFileMainVersion(fn: string):string;
-  function GetFileVersion(fn: string):string;//得到程序的版本号
-  function ForceDeleteDir(sDir: string): Integer;
-
-  function BrowseFolder(const Folder: string): string;
+    //// 文件属性类的处理
+    // 去掉只读属性
+    class procedure FileRemoveReadOnly(sFile: string);
+    // 获取文件的详细信息
+    class function GetFileFullInfo(AFileName: string): TFileFullInfo;
+    // 显示文件属性窗口
+    class procedure ShowFilePropWindow(AFileName: string);
+    class function GetFileMainVersion(fn: string):string;
+    class function GetFileVersion(fn: string):string;//得到程序的版本号
+  end;
 
 implementation
 
@@ -153,6 +162,66 @@ uses
 
 const
   C_sSLASH_SCRIPT = '/';
+
+function ConcatStr(Separator: string; arystr: array of string): string;
+var
+  i: Integer;
+  sConcat: string;
+begin
+  Result := '';
+  if Length(arystr) = 0 then
+    Exit;
+  sConcat := '';
+  Result := arystr[0];
+  for i := 1 to High(arystr) do
+  begin
+    // 前后两个串都不是空 并且前串末尾、后串开头都不是分隔符，则加分隔符
+    if ('' <> Trim(arystr[i])) and
+       ('' <> Trim(Result)) and
+       (Separator <> Copy(Result, Length(Result), 1)) and
+       (Separator <> Copy(arystr[i], 1, 1)) then
+      sConcat := Separator
+    else
+      sConcat := '';
+
+    Result := Result + sConcat + arystr[i];
+  end;
+end;
+
+function Split(sText, sSeparator: String; ssParts: TStrings):TStrings;
+var
+  nPos: Integer;
+  sPart, sRemain: String;
+begin
+  Result := ssParts;
+  if Result = nil then
+    Result := TStringList.Create;
+  Result.Clear;
+  sRemain:= sText;
+  nPos:= Pos(sSeparator, sRemain);
+
+  while nPos > 0 do
+  begin
+    sPart:= Copy(sRemain, 1, nPos- 1);
+    if Trim(sPart) <> '' then
+      Result.Add(sPart);
+    sRemain:= Copy(sRemain, nPos+ Length(sSeparator), Length(sRemain)- nPos+ 1);
+    nPos:= Pos(sSeparator, sRemain);
+  end;
+
+  if sRemain <> '' then
+    Result.Add(sRemain);
+end;
+
+function CovFileDate(Fd:_FileTime):TDateTime;
+var
+  Tct:_SystemTime;
+  Temp:_FileTime;
+begin
+  FileTimeToLocalFileTime(Fd,Temp);
+  FileTimeToSystemTime(Temp,Tct);
+  Result := SystemTimeToDateTime(Tct);
+end;
 
 type
   TCompFile = class(TCustomComparer<TFileItem>)
@@ -167,7 +236,19 @@ begin
   Result := 0;
 end;
 
-function BrowseFolder(const Folder: string): string;
+{ TFileUtil }
+
+class function TFileUtil.ConcatDir(asDirs: array of string): string;
+begin
+  Result := ConcatStr(PathDelim, asDirs);
+end;
+
+class function TFileUtil.ConcatScript(asDirs: array of string): string;
+begin
+  Result := ConcatStr(C_sSLASH_SCRIPT, asDirs);
+end;
+
+class function TFileUtil.BrowseFolder(const Folder: string): string;
 var
   TitleName: string;
   lpItemID: PItemIDList;
@@ -197,7 +278,7 @@ begin
     Result:=Folder;
 end;
 
-function ForceDeleteDir( sDir: String): Integer;
+class function TFileUtil.ForceDeleteDir( sDir: String): Integer;
 var
   T:TSHFileOpStruct;
 begin
@@ -227,7 +308,7 @@ begin
   Result := SHFileOperation( T );
 end;
 
-function GetFileMainVersion(fn: string):string;
+class function TFileUtil.GetFileMainVersion(fn: string):string;
 var
   buf, p: pChar;
   sver: ^VS_FIXEDFILEINFO ;
@@ -268,7 +349,7 @@ begin
   Result:=sRes;
 end;
 
-function GetFileVersion(fn: string):string;
+class function TFileUtil.GetFileVersion(fn: string):string;
 var
   buf, p: pChar;
   sver: ^VS_FIXEDFILEINFO ;
@@ -308,7 +389,7 @@ begin
   Result:=sRes;
 end;
 
-procedure FindFiles(sPath, sFileExt: string; AStrs: TStrings;
+class procedure TFileUtil.FindFiles(sPath, sFileExt: string; AStrs: TStrings;
     SubDir: Boolean;ShowDir: Boolean);
 var
   FSrchRec{, DSrchRec}: TSearchRec;
@@ -351,7 +432,7 @@ begin
   end;
 end;
 
-procedure FindDirs(sPath: string; AStrs: TStrings; SubDir: Boolean = False);
+class procedure TFileUtil.FindDirs(sPath: string; AStrs: TStrings; SubDir: Boolean = False);
 var
   FSrchRec{, DSrchRec}: TSearchRec;
   nFindResult: Integer;
@@ -382,7 +463,7 @@ begin
   end;
 end;
 
-procedure FindChangedFile(sPath: string; FileList: TFileList);
+class procedure TFileUtil.FindChangedFile(sPath: string; FileList: TFileList);
 var
   hndFindChange: THandle;
   dwWaitState: DWORD;
@@ -414,42 +495,7 @@ begin
   end;
 end;
 
-function ConcatStr(Separator: string; arystr: array of string): string;
-var
-  i: Integer;
-  sConcat: string;
-begin
-  Result := '';
-  if Length(arystr) = 0 then
-    Exit;
-  sConcat := '';
-  Result := arystr[0];
-  for i := 1 to High(arystr) do
-  begin
-    // 前后两个串都不是空 并且前串末尾、后串开头都不是分隔符，则加分隔符
-    if ('' <> Trim(arystr[i])) and
-       ('' <> Trim(Result)) and
-       (Separator <> Copy(Result, Length(Result), 1)) and
-       (Separator <> Copy(arystr[i], 1, 1)) then
-      sConcat := Separator
-    else
-      sConcat := '';
-
-    Result := Result + sConcat + arystr[i];
-  end;
-end;
-
-function ConcatDir(asDirs: array of string): string;
-begin
-  Result := ConcatStr(PathDelim, asDirs);
-end;
-
-function ConcatScript(asDirs: array of string): string;
-begin
-  Result := ConcatStr(C_sSLASH_SCRIPT, asDirs);
-end;
-
-function RemoveFileExt(s: string): string;
+class function TFileUtil.RemoveFileExt(s: string): string;
 var
   i: Integer;
 begin
@@ -466,13 +512,13 @@ begin
   end;
 end;
 
-procedure FileRemoveReadOnly(sFile: string);
+class procedure TFileUtil.FileRemoveReadOnly(sFile: string);
 begin
   if FileExists( sFile ) then
     FileSetAttr( sFile, FileGetAttr (sFile) and (not SysUtils.faReadOnly) );
 end;
 
-function IsDirectSubDir(sDirMain, sDirSub: string):Boolean;
+class function TFileUtil.IsDirectSubDir(sDirMain, sDirSub: string):Boolean;
 var
   sSub: string;
 begin
@@ -491,7 +537,7 @@ begin
     Result := True;
 end;
 
-function CopyListFiles(SourceFiles: TStrings;sDestDir: string;bChangeDir:
+class function TFileUtil.CopyListFiles(SourceFiles: TStrings;sDestDir: string;bChangeDir:
   Boolean): Boolean;
 var
   i: Integer;
@@ -527,7 +573,7 @@ begin
   end;
 end;
 
-function CopyDirFiles(ASourceDir, ADestDir: string; CopySub: Boolean;
+class function TFileUtil.CopyDirFiles(ASourceDir, ADestDir: string; CopySub: Boolean;
     FileExt: string):Boolean;
 var
   i: Integer;
@@ -562,7 +608,7 @@ begin
   end;
 end;
 
-function GetFileFullInfo(AFileName: string): TFileFullInfo;
+class function TFileUtil.GetFileFullInfo(AFileName: string): TFileFullInfo;
 var
   nFileInfoSize: LongInt;
   Temp, Len: Cardinal;
@@ -628,18 +674,7 @@ begin
   end;
 end;
 
-function CovFileDate(Fd:_FileTime):TDateTime;
-{ 转换文件的时间格式 }
-var
-  Tct:_SystemTime;
-  Temp:_FileTime;
-begin
-  FileTimeToLocalFileTime(Fd,Temp);
-  FileTimeToSystemTime(Temp,Tct);
-  CovFileDate:=SystemTimeToDateTime(Tct);
-end;
-
-procedure ShowFilePropWindow(AFileName: string);
+class procedure TFileUtil.ShowFilePropWindow(AFileName: string);
 var
   sei: TShellExecuteInfo;
 begin
@@ -654,7 +689,7 @@ begin
   end;
 end;
 
-function IsFileInUse(AFileName: string): Boolean;
+class function TFileUtil.IsFileInUse(AFileName: string): Boolean;
 var
  HFileRes: HFILE;
 begin
@@ -667,7 +702,7 @@ begin
   end;
 end;
 
-function IsDirInUse(ADir: string): Boolean;
+class function TFileUtil.IsDirInUse(ADir: string): Boolean;
 var
   slstFiles: TStrings;
   i: Integer;
@@ -686,6 +721,58 @@ begin
     end;
   finally
     slstFiles.Free;
+  end;
+end;
+
+class function TFileUtil.ParseFileEncoding(const FileName: string): TEncoding;
+var
+  w:Word;
+  b:Byte;
+  function WordLoHiExchange(w:Word):Word;register;
+  asm
+    XCHG AL, AH
+  end;
+begin
+  Result:= TEncoding.Default;
+  with TFileStream.Create(FileName,fmOpenRead or fmShareDenyNone) do
+  try
+    Read(w,2);
+    w:=WordLoHiExchange(w);//因为是以Word数据类型读取，故高低字节互换
+    if w = TextFormatFlag[tfUnicode] then
+      Result := TEncoding.Unicode
+    else if w = TextFormatFlag[tfUnicodeBigEndian] then
+      TEncoding.BigEndianUnicode
+    else if w = TextFormatFlag[tfUtf8] then
+    begin
+      Read(b,1);// BOM是3个字节，因此UFT-8必须要跳过三个字节。
+      Result:= TEncoding.UTF8;
+    end else begin  // 无可判断的文件头，使用默认编码，暂未实现通过内容识别编码
+      Result:= TEncoding.Default;
+      Position:=0;
+    end;
+//    SetLength(sText,Size-Position);
+//    ReadBuffer(sText[1],Size-Position);
+  finally
+    Free;
+  end;
+end;
+
+class function TFileUtil.ParseFileEncoding2(const FileName: string): TEncoding;
+var
+  buff: TBytes;
+  readCount: Integer;
+  encoding: TEncoding;
+  stream: TFileStream;
+begin
+  stream := TFileStream.Create(FileName,fmOpenRead or fmShareDenyNone);
+  try
+    SetLength(buff, 1024);
+    readCount := stream.Read(buff, Length(buff));
+    encoding := nil;
+    TEncoding.GetBufferEncoding(buff, encoding);
+    Result := encoding;
+  finally
+    stream.Free;
   end;
 end;
 
@@ -782,31 +869,6 @@ begin
   finally
     FindClose(FSrchRec);
   end;
-end;
-
-function Split(sText, sSeparator: String; ssParts: TStrings):TStrings;
-var
-  nPos: Integer;
-  sPart, sRemain: String;
-begin
-  Result := ssParts;
-  if Result = nil then
-    Result := TStringList.Create;
-  Result.Clear;
-  sRemain:= sText;
-  nPos:= Pos(sSeparator, sRemain);
-
-  while nPos > 0 do
-  begin
-    sPart:= Copy(sRemain, 1, nPos- 1);
-    if Trim(sPart) <> '' then
-      Result.Add(sPart);
-    sRemain:= Copy(sRemain, nPos+ Length(sSeparator), Length(sRemain)- nPos+ 1);
-    nPos:= Pos(sSeparator, sRemain);
-  end;
-
-  if sRemain <> '' then
-    Result.Add(sRemain);
 end;
 
 procedure TFileList.FindFiles(sPath, sFileExt: string);

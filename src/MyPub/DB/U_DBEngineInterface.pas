@@ -103,7 +103,7 @@ const
     +'[服务名, 主机, 端口, 协议]';
   ERROR_DBTYPE = '数据库类型错误！';
 
-   CONNSTR_ACCESS =
+  CONNSTR_ACCESS =
     'Provider=Microsoft.Jet.OLEDB.4.0;'
     + 'Data Source=%s;'
     + '%s'                                // Jet OLEDB:System database=%s;
@@ -121,6 +121,9 @@ const
      + 'User ID=%s;'
      + 'Password=%s;';
   SYSDB_ACCESS2007 = SYSDB_ACCESS;
+
+  CONNSTR_DBF =
+    'Provider=Microsoft.Jet.OLEDB.4.0;Data Source=%s;Extended Properties=dBase 5.0;Persist Security Info=False';
 
   CONNSTR_ORACLE =
     'Provider=OraOLEDB.Oracle.1;' +

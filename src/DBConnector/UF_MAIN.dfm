@@ -176,9 +176,8 @@ object F_MAIN: TF_MAIN
             inline frmDBOperateMain: TFM_DBOperate
               Left = 0
               Top = 0
-              Width = 582
-              Height = 428
-              Align = alClient
+              Width = 621
+              Height = 467
               Font.Charset = GB2312_CHARSET
               Font.Color = clWindowText
               Font.Height = -13
@@ -186,104 +185,35 @@ object F_MAIN: TF_MAIN
               Font.Style = []
               ParentFont = False
               TabOrder = 0
-              ExplicitWidth = 582
-              ExplicitHeight = 428
-              inherited stat1: TStatusBar
-                Top = 409
-                Width = 582
-                ExplicitTop = 409
-                ExplicitWidth = 582
-              end
               inherited pnl3: TPanel
-                Width = 582
-                Height = 409
-                ExplicitWidth = 582
-                ExplicitHeight = 409
-                inherited splTopClient: TSplitter
-                  Width = 580
-                end
-                inherited pnlTop: TPanel
-                  Width = 580
-                  ExplicitWidth = 580
-                  inherited pnl2: TPanel
-                    Left = 544
-                    ExplicitLeft = 544
-                  end
-                  inherited syndtSql: TSynEdit
-                    Width = 544
-                    ExplicitWidth = 544
-                  end
-                end
                 inherited pnlClient: TPanel
-                  Width = 580
-                  Height = 303
-                  ExplicitWidth = 580
-                  ExplicitHeight = 303
                   inherited pgcClient: TPageControl
-                    Width = 578
-                    Height = 301
-                    ExplicitWidth = 578
-                    ExplicitHeight = 301
-                    inherited tsData: TTabSheet
-                      ExplicitWidth = 570
-                      ExplicitHeight = 272
-                      inherited pnlGrid: TPanel
-                        Width = 570
-                        Height = 272
-                        ExplicitWidth = 570
-                        ExplicitHeight = 272
-                        inherited splFieldDetail: TSplitter
-                          Top = 157
-                          Width = 570
-                        end
-                        inherited pnl6: TPanel
-                          Width = 570
-                          ExplicitWidth = 570
-                          inherited pnl1: TPanel
-                            Left = 550
-                            ExplicitLeft = 550
-                          end
-                        end
-                        inherited dbgrdData: TfDBGrid
-                          Width = 570
-                          Height = 132
-                        end
-                        inherited pnlMsg: TPanel
-                          Top = 161
-                          Width = 570
-                          ExplicitTop = 161
-                          ExplicitWidth = 570
-                          inherited pnl5: TPanel
-                            Width = 554
-                            ExplicitWidth = 554
-                            inherited pnl4: TPanel
-                              Width = 554
-                              ExplicitWidth = 554
-                              inherited tlbField: TToolBar
-                                Width = 554
-                                ExplicitWidth = 554
-                              end
-                              inherited dbmmoShowFieldDetail: TDBMemo
-                                Width = 554
-                                ExplicitWidth = 554
-                              end
-                            end
-                            inherited Panel1: TPanel
-                              Width = 554
-                              ExplicitWidth = 554
-                            end
-                          end
-                        end
-                      end
-                    end
+                    ActivePage = frmDBOperateMain.tsOutPut
                     inherited tsOutPut: TTabSheet
                       ExplicitLeft = 4
                       ExplicitTop = 25
                       ExplicitWidth = 609
                       ExplicitHeight = 311
+                      inherited pnl7: TPanel
+                        inherited pnl8: TPanel
+                          inherited tlb1: TToolBar
+                            Images = DataModule1.ilBtnIcons
+                          end
+                        end
+                      end
                     end
                   end
                 end
+              end
+              inherited pmAdjust: TPopupMenu
+                Left = 72
+              end
+              inherited actlstMain: TActionList
+                Left = 72
+                Top = 248
+              end
+              inherited pmMenu: TPopupMenu
+                Top = 248
               end
             end
           end
@@ -1055,12 +985,12 @@ object F_MAIN: TF_MAIN
           item
             Action = actManDBParams
             Caption = #21442#25968'(&V)'
-            ImageIndex = 12
+            ImageIndex = 3
           end
           item
             Action = actManRefreshTree
             Caption = #21047#26032#26641'(&W)'
-            ImageIndex = 7
+            ImageIndex = 26
             ShowShortCut = False
           end
           item
@@ -1138,7 +1068,7 @@ object F_MAIN: TF_MAIN
     object actManRefreshTree: TAction
       Category = #26597#30475
       Caption = #21047#26032#26641
-      ImageIndex = 7
+      ImageIndex = 26
       OnExecute = actRefreshTreeExecute
     end
     object actManExecSql: TAction
@@ -1217,7 +1147,7 @@ object F_MAIN: TF_MAIN
     end
   end
   object OpenDialog1: TOpenDialog
-    Left = 88
+    Left = 104
     Top = 368
   end
 end

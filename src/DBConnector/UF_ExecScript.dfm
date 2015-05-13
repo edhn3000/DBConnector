@@ -1,10 +1,10 @@
 object F_ExecScript: TF_ExecScript
   Left = 363
   Top = 199
-  Width = 463
-  Height = 350
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = #25191#34892#33050#26412
+  ClientHeight = 312
+  ClientWidth = 447
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
   Font.Color = clWindowText

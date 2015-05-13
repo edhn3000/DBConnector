@@ -6,6 +6,7 @@ inherited F_DBOption: TF_DBOption
   ClientWidth = 530
   OldCreateOrder = True
   OnCreate = FormCreate
+  ExplicitTop = -164
   ExplicitWidth = 536
   ExplicitHeight = 541
   PixelsPerInch = 96
@@ -91,10 +92,6 @@ inherited F_DBOption: TF_DBOption
       OnChange = pgcOptionsChange
       object ts1: TTabSheet
         Caption = 'Access'
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object lbl1: TLabel
           Left = 16
           Top = 20
@@ -153,10 +150,6 @@ inherited F_DBOption: TF_DBOption
       object ts2: TTabSheet
         Caption = 'Oracle'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object lblOraSID: TLabel
           Left = 16
           Top = 20
@@ -250,10 +243,6 @@ inherited F_DBOption: TF_DBOption
       object tsSybase: TTabSheet
         Caption = 'Sybase'
         ImageIndex = 2
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object lbl9: TLabel
           Left = 16
           Top = 128
@@ -307,10 +296,6 @@ inherited F_DBOption: TF_DBOption
       object tsMySql: TTabSheet
         Caption = 'MySql'
         ImageIndex = 3
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object Label1: TLabel
           Left = 16
           Top = 20
@@ -366,16 +351,19 @@ inherited F_DBOption: TF_DBOption
       object tsSqlite: TTabSheet
         Caption = 'SQLite'
         ImageIndex = 4
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object Label9: TLabel
           Left = 16
           Top = 20
           Width = 36
           Height = 12
           Caption = #25991#20214#65306
+        end
+        object Label10: TLabel
+          Left = 16
+          Top = 128
+          Width = 186
+          Height = 12
+          Caption = #38656#35201#30830#20445'sqlite3.dll'#22312#31243#24207#30446#24405#19979
         end
         object edtSqliteDBFile: TEdit
           Left = 76

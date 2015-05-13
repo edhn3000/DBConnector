@@ -245,7 +245,8 @@ begin
     finally
       if Assigned(g_Log) then
         FreeAndNil(g_Log);
-      dbConnect := nil;
+      dBConnect._Release;
+      dBConnect := nil;
     end;
   end;
 end;

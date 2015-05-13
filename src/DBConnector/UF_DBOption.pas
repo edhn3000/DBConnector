@@ -70,6 +70,7 @@ type
     Label9: TLabel;
     edtSqliteDBFile: TEdit;
     btnChooseSqliteDB: TButton;
+    Label10: TLabel;
     procedure FormShow(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnChooseDBClick(Sender: TObject);

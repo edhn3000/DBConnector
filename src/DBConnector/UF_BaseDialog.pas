@@ -48,7 +48,7 @@ begin
   ChangeMainDescription('');
   ChangeSubDescription('');
   ChangeTip('');  
-  self.labVer.Caption:=GetFileMainVersion(Application.ExeName);
+  self.labVer.Caption:=TFileUtil.GetFileMainVersion(Application.ExeName);
 end;
 
 procedure TF_BaseDialog.btnCloseMeClick(Sender: TObject);

@@ -60,7 +60,7 @@ object F_BaseDialog: TF_BaseDialog
       Left = 288
       Top = 0
       Width = 48
-      Height = 57
+      Height = 48
       Align = alRight
       AutoSize = True
       Center = True
@@ -116,6 +116,7 @@ object F_BaseDialog: TF_BaseDialog
         D2A8DBDE017B48E2064107A80FFBD05736F3725C71655B62F82AFDB8FF00DD39
         787249A28ECEEAD1281E05ADA45B882D968A96402807F50E7D469BF696CABF2E
         5ED576D4DAC588BA4C1A428ADC52F0B2E2B1EB8F6D704A4BFFD9}
+      ExplicitHeight = 57
     end
   end
   object panelCtlArea: TPanel

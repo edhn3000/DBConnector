@@ -183,6 +183,7 @@ begin
           sSec := Format(SYSDB_ACCESS, [sSec]);
         Result := Format(CONNSTR_ACCESS, [slst[0], sSec,
                                                 sUser, sPwd]);
+//        Result := Format(CONNSTR_DBF, [slst[0]]);
       end;
       dbtAccess2007:
       begin        

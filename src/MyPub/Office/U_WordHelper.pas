@@ -17,8 +17,9 @@ type
 
   TWordHelper = class
   private
-    FWordApp: OleVariant;
-    FWordDoc: OleVariant; // active document
+    FApplicatioin: OleVariant;
+    FActiveDocument: OleVariant;
+//    FWordApp: WordApplication;  // 将FApplicatioin转换为结构对象，方便操作
     FOpend: Boolean;
     FCloseOnFree: Boolean;
     FFileName: String;
@@ -28,7 +29,8 @@ type
     function CheckWordApp(): Boolean;
   public
     property CloseOnFree: Boolean read FCloseOnFree write FCloseOnFree;
-    property WordApp: OleVariant read FWordApp;
+    property Application: OleVariant read FApplicatioin;
+//    property WordApp: WordApplication read FWordApp;
     property Opend: Boolean read FOpend;
     property ShowComment: Boolean read GetShowComment write SetShowComment;
 
@@ -38,12 +40,11 @@ type
     destructor Destroy;override;
 
     { 打开Wrod文档 }
+    procedure NewFile(sFileName: String);
     procedure OpenFile(sFileName: String);overload;
     procedure OpenFile(sFileName: String; readOnly: Boolean);overload;
-    { 关闭Word，不保存更改，要保存先调用SaveFile}
-    procedure CloseFile();
-    { 保存Word文档 }
-    procedure SaveFile();
+    { 关闭Word}
+    procedure CloseFile(bSave: Boolean = false);
     { 显示Word文档，默认打开时不会显示文档 }
     procedure ShowWord();
     { 查找内容，返回内容在resultList中 }
@@ -66,7 +67,8 @@ type
   参数:      text: String
   返回值:    无
 -------------------------------------------------------------------------------}
-    procedure SelectText(text: String);
+    function SelectText(text: String): OleVariant; overload;
+    function SelectText(startPos, endPos: LongInt): OleVariant; overload;
     procedure SelectTextWithTag(text: String);
 {-------------------------------------------------------------------------------
   过程名:    SelAndColorText 选中Word中文本并用给定颜色标出，
@@ -155,12 +157,12 @@ function TWordHelper.CheckWordApp(): Boolean;
 var
   S: string;
 begin
-  Result := not VarIsNull(FWordApp);
+  Result := not VarIsNull(FApplicatioin);
 
   if Result then
   begin
     try
-      S := FWordApp.Version;
+      S := FApplicatioin.Version;
     except
       Result := False;
     end;
@@ -169,12 +171,12 @@ end;
 
 function TWordHelper.GetShowComment(): Boolean;
 begin
-  Result := wordApp.ActiveWindow.View.ShowRevisionsAndComments;
+  Result := FApplicatioin.ActiveWindow.View.ShowRevisionsAndComments;
 end;
 
 procedure TWordHelper.SetShowComment(value: Boolean);
 begin
-  wordApp.ActiveWindow.View.ShowRevisionsAndComments := value;
+  FApplicatioin.ActiveWindow.View.ShowRevisionsAndComments := value;
 //  wordApp.ActiveWindow.View.RevisionsView := wdRevisionsViewFinal;
 end;
 
@@ -187,16 +189,17 @@ constructor TWordHelper.Create(useActiveApp: Boolean);
 begin
   if useActiveApp then begin
     try
-      FWordApp := GetActiveOleObject('Word.Application');
+      FApplicatioin := GetActiveOleObject('Word.Application');
     except
       on e: EOleSysError do
-        FWordApp := CreateOleObject('Word.Application');
+        FApplicatioin := CreateOleObject('Word.Application');
     end
   end else begin
-    FWordApp := CreateOleObject('Word.Application');
+    FApplicatioin := CreateOleObject('Word.Application');
   end;
   // 不保存到Normal.dotm，避免文档被重复打开后在关闭时报错
-  FWordApp.Options.SaveNormalPrompt := False;
+  FApplicatioin.Options.SaveNormalPrompt := False;
+//  FWordApp := WordApplication(IDispatch(FApplicatioin));
 //  if not CheckWordApp then
 //  begin
 //    //
@@ -206,7 +209,7 @@ end;
 
 constructor TWordHelper.Create(WordApp: OleVariant);
 begin
-  FWordApp := WordApp;
+  FApplicatioin := WordApp;
   FCloseOnFree := False;  // 外部传入的WordApp对象，默认不管关闭
 end;
 
@@ -216,16 +219,25 @@ begin
   begin
     try
       if FOpend then
-        CloseFile;
-      FWordApp.Quit(wdDoNotSaveChanges);
-    except
-      // 关闭过程中可能有异常
+        CloseFile(False);
+      FApplicatioin.Quit(wdDoNotSaveChanges);
+    except  // 关闭过程中可能有异常
+      on e: Exception do
+        OutputDebugString(PChar('TWordHelper.Free关闭Word出错！' + e.Message));
     end;
   end;
 
-  FWordApp := NULL;
-  FWordDoc := NULL;
+  FApplicatioin := NULL;
+  FActiveDocument := NULL;
   inherited;
+end;
+
+procedure TWordHelper.NewFile(sFileName: String);
+begin
+  FFileName := sFileName;
+  FApplicatioin.Documents.Add;
+//  FWordApp := WordApplication(IDispatch(FApplicatioin));
+  FActiveDocument := FApplicatioin.ActiveDocument;
 end;
 
 procedure TWordHelper.OpenFile(sFileName: String);
@@ -237,29 +249,30 @@ procedure TWordHelper.OpenFile(sFileName: String; readOnly: Boolean);
 begin
   FFileName := sFileName;
   if readOnly then
-    FWordApp.Documents.Open(sFileName, False, True)
+    FApplicatioin.Documents.Open(sFileName, False, True)
   else
-    FWordApp.Documents.Open(sFileName);
-  FWordApp.Options.SaveNormalPrompt := False;
-  FWordDoc := FWordApp.ActiveDocument;
+    FApplicatioin.Documents.Open(sFileName);
+  FApplicatioin.Options.SaveNormalPrompt := False;
+//  FWordApp := WordApplication(IDispatch(FApplicatioin));
+  FActiveDocument := FApplicatioin.ActiveDocument;
   FOpend := True;
 end;
 
-procedure TWordHelper.CloseFile();
+procedure TWordHelper.CloseFile(bSave: Boolean);
 begin
-  FWordDoc.Close(wdDoNotSaveChanges);
+  if bSave then begin
+    FActiveDocument.SaveAs(FFileName);
+    FActiveDocument.Close(wdDoNotSaveChanges);
+  end else begin
+    FActiveDocument.Close(wdDoNotSaveChanges);
+  end;
   FOpend := False;
-end;
-
-procedure TWordHelper.SaveFile;
-begin
-  FWordDoc.Save;
 end;
 
 procedure TWordHelper.ShowWord;
 begin
-  FWordApp.Visible := True;
-  FWordApp.Activate;
+  FApplicatioin.Visible := True;
+  FApplicatioin.Activate;
 end;
 
 function TWordHelper.AddComment(text: string; userName: string): OleVariant;
@@ -267,8 +280,8 @@ var
   range: OleVariant;
   cmt: OleVariant;
 begin
-  range := FWordApp.Selection.Range;
-  cmt := FWordApp.ActiveDocument.Comments.Add(range, text);
+  range := FApplicatioin.Selection.Range;
+  cmt := FApplicatioin.ActiveDocument.Comments.Add(range, text);
   cmt.Initial := userName;
   Result := cmt;
 end;
@@ -279,9 +292,9 @@ var
   cmt: OleVariant;
 begin
   // 批注索引是从1开始直到Count
-  for i := FWordApp.ActiveDocument.Comments.Count downto 1 do
+  for i := FApplicatioin.ActiveDocument.Comments.Count downto 1 do
   begin
-    cmt := FWordApp.ActiveDocument.Comments.Item(i);
+    cmt := FApplicatioin.ActiveDocument.Comments.Item(i);
     if cmt.Initial = userName then
     begin
       cmt.Delete;
@@ -289,7 +302,7 @@ begin
   end;
 end;
 
-procedure TWordHelper.SelectText(text: String);
+function TWordHelper.SelectText(text: String): OleVariant;
 var
   upline,nomove,oleUnit,oleExtend: OleVariant;
   sFindText: WideString;
@@ -301,53 +314,61 @@ begin
   oleUnit := wdStory;
   oleExtend := wdMove;
   //先定位到文档最前面
-  wordApp.Selection.HomeKey(oleUnit, oleExtend);
+  FApplicatioin.Selection.HomeKey(oleUnit, oleExtend);
   //再定位错误
-  wordApp.Selection.Start := 0;
-  wordApp.Selection.End := 0;
-  wordApp.Selection.Find.ClearFormatting;
-  wordApp.Selection.Find.Text:=sFindText;
-  wordApp.Selection.Find.Replacement.Text:=sFindText;
-  wordApp.Selection.Find.Forward:=True;
-  wordApp.Selection.Find.Wrap:=1;
-  wordApp.Selection.Find.Format:=False;
-  wordApp.Selection.Find.MatchCase:=False;
-  wordApp.Selection.Find.MatchWholeWord:=False;
+  FApplicatioin.Selection.Start := 0;
+  FApplicatioin.Selection.End := 0;
+  FApplicatioin.Selection.Find.ClearFormatting;
+  FApplicatioin.Selection.Find.Text:=sFindText;
+  FApplicatioin.Selection.Find.Replacement.Text:=sFindText;
+  FApplicatioin.Selection.Find.Forward:=True;
+  FApplicatioin.Selection.Find.Wrap:=1;
+  FApplicatioin.Selection.Find.Format:=False;
+  FApplicatioin.Selection.Find.MatchCase:=False;
+  FApplicatioin.Selection.Find.MatchWholeWord:=False;
   // 因为word不区分全角半角的"和'，因此特殊处理
   if (sFindText = '"') or (sFindText = '''') then
   begin
-    wordApp.Selection.Find.MatchByte:=False;
-    wordApp.Selection.Find.MatchWildcards:=True;
+    FApplicatioin.Selection.Find.MatchByte:=False;
+    FApplicatioin.Selection.Find.MatchWildcards:=True;
   end
   else
   begin
-    wordApp.Selection.Find.MatchByte:=True;
-    wordApp.Selection.Find.MatchWildcards:=False;
+    FApplicatioin.Selection.Find.MatchByte:=True;
+    FApplicatioin.Selection.Find.MatchWildcards:=False;
   end;
-  wordApp.Selection.Find.MatchSoundsLike:=False;
-  wordApp.Selection.Find.MatchAllWordForms:=False;
-  wordApp.Selection.Find.Execute;
+  FApplicatioin.Selection.Find.MatchSoundsLike:=False;
+  FApplicatioin.Selection.Find.MatchAllWordForms:=False;
+  FApplicatioin.Selection.Find.Execute;
   // Find时word会跳转到结果处，但结果显示在窗口最顶部，向上滚动8格易于查看
   upline := 8;
   nomove := 0;
-  wordApp.ActiveWindow.SmallScroll(nomove,upline,nomove,nomove);
+  FApplicatioin.ActiveWindow.SmallScroll(nomove,upline,nomove,nomove);
+  Result := FApplicatioin.Selection;
+end;
+
+function TWordHelper.SelectText(startPos, endPos: LongInt): OleVariant;
+begin
+  FApplicatioin.Selection.Start := startPos;
+  FApplicatioin.Selection.End := endPos;
+  Result := FApplicatioin.Selection;
 end;
 
 procedure TWordHelper.SelectTextWithTag(text: String);
 begin
   SelectText(text);
-  while wordApp.Selection.Find.Found do
+  while FApplicatioin.Selection.Find.Found do
   begin
-    if (wordApp.Selection.Font.Shading.BackgroundPatternColor <> wdColorAutomatic)
-      and (wordApp.Selection.Font.Shading.BackgroundPatternColor <> Integer(wdColorAutomatic)) then
+    if (FApplicatioin.Selection.Font.Shading.BackgroundPatternColor <> wdColorAutomatic)
+      and (FApplicatioin.Selection.Font.Shading.BackgroundPatternColor <> Integer(wdColorAutomatic)) then
     begin
       if Length(text) > WORD_FIND_MAX_LEN then
       begin
-        wordApp.Selection.end := wordApp.Selection.start + Length(text);
+        FApplicatioin.Selection.end := FApplicatioin.Selection.start + Length(text);
       end;
       Exit;
     end;
-    wordApp.Selection.Find.Execute;
+    FApplicatioin.Selection.Find.Execute;
   end;
 end;
 
@@ -360,22 +381,22 @@ var
 begin
   SelectText(text);
   findcount := 0;
-  while wordApp.Selection.Find.Found do
+  while FApplicatioin.Selection.Find.Found do
   begin
-    findpos[findcount] := wordApp.Selection.start;
+    findpos[findcount] := FApplicatioin.Selection.start;
     Inc(findcount);
     if findcount > 255 then
       System.break;
-    wordApp.Selection.Find.Execute;
+    FApplicatioin.Selection.Find.Execute;
   end;
 
   for i := 0 to findcount - 1 do
   begin
-    wordApp.Selection.start := findpos[i] + iPos - 1;
-    wordApp.Selection.end := findpos[i] + iPos - 1 + iLen;
-    if wordApp.Selection.Text = text then
+    FApplicatioin.Selection.start := findpos[i] + iPos - 1;
+    FApplicatioin.Selection.end := findpos[i] + iPos - 1 + iLen;
+    if FApplicatioin.Selection.Text = text then
     begin
-      wordApp.Selection.Font.Shading.BackgroundPatternColor := color;
+      FApplicatioin.Selection.Font.Shading.BackgroundPatternColor := color;
     end;
   end;
 end;
@@ -386,18 +407,18 @@ var
   nPos: Integer;
   text: String;
 begin
-  wordApp.Selection.start := selStart;
-  wordApp.Selection.end := selEnd;
-  text := FWordApp.Selection.Text;
+  FApplicatioin.Selection.start := selStart;
+  FApplicatioin.Selection.end := selEnd;
+  text := FApplicatioin.Selection.Text;
   nPos := 0;
   repeat
     // 每次从上次找到的位置+1继续找
     nPos := PosFrom(subText, text, nPos + 1, False);
     if nPos > 0 then
     begin
-      wordApp.Selection.start := selStart + nPos - 1;
-      wordApp.Selection.end := selStart + nPos + Length(subText) - 1;
-      wordApp.Selection.Font.Shading.BackgroundPatternColor := color;
+      FApplicatioin.Selection.start := selStart + nPos - 1;
+      FApplicatioin.Selection.end := selStart + nPos + Length(subText) - 1;
+      FApplicatioin.Selection.Font.Shading.BackgroundPatternColor := color;
     end;
   until nPos = 0;
 end;
@@ -416,24 +437,24 @@ begin
   Screen.Cursor := crHourGlass;
   StrList := resultList;
   //记住原始滚动条位置
-  nStart      := FWordApp.Selection.Start;
-  nEnd        := FWordApp.Selection.End;
-  nVertical   := FWordApp.ActiveWindow.ActivePane.VerticalPercentScrolled;
-  nHorizontal := FWordApp.ActiveWindow.ActivePane.HorizontalPercentScrolled;
+  nStart      := FApplicatioin.Selection.Start;
+  nEnd        := FApplicatioin.Selection.End;
+  nVertical   := FApplicatioin.ActiveWindow.ActivePane.VerticalPercentScrolled;
+  nHorizontal := FApplicatioin.ActiveWindow.ActivePane.HorizontalPercentScrolled;
   try
 
-    FWordApp.Selection.Find.ClearFormatting;
-    FWordApp.Selection.Find.Text    := sFind;
-    FWordApp.Selection.Find.Forward := True;
+    FApplicatioin.Selection.Find.ClearFormatting;
+    FApplicatioin.Selection.Find.Text    := sFind;
+    FApplicatioin.Selection.Find.Forward := True;
 
-    while FWordApp.Selection.Find.Execute do
+    while FApplicatioin.Selection.Find.Execute do
     begin
-      Range := FWordApp.Selection.Range;
+      Range := FApplicatioin.Selection.Range;
       Range.Start := Range.Start - 20;
       Range.End   := Range.End + 20;
 
-      nPos1 := FWordApp.Selection.Start;
-      nPos2 := FWordApp.Selection.End;
+      nPos1 := FApplicatioin.Selection.Start;
+      nPos2 := FApplicatioin.Selection.End;
       StrList.AddObject(Format('%d=%s', [nPos1, Range.Text]), TObject(nPos2));
 
       Application.ProcessMessages;
@@ -443,10 +464,10 @@ begin
     //恢复原始位置
     if StrList.Count > 0 then
     begin
-      FWordApp.ActiveWindow.ActivePane.VerticalPercentScrolled   := nVertical;
-      FWordApp.ActiveWindow.ActivePane.HorizontalPercentScrolled := nHorizontal;
-      FWordApp.Selection.Start := nStart;
-      FWordApp.Selection.End   := nEnd;
+      FApplicatioin.ActiveWindow.ActivePane.VerticalPercentScrolled   := nVertical;
+      FApplicatioin.ActiveWindow.ActivePane.HorizontalPercentScrolled := nHorizontal;
+      FApplicatioin.Selection.Start := nStart;
+      FApplicatioin.Selection.End   := nEnd;
     end;
 
     Screen.Cursor := crDefault;
@@ -459,7 +480,7 @@ var
   cmdCtrl: OleVariant;
 begin
   Result := False;
-  cmdBar := FWordApp.CommandBars.Item['Standard'];
+  cmdBar := FApplicatioin.CommandBars.Item['Standard'];
   cmdCtrl := cmdBar.FindControl(msoControlButton, 1, tag, 1, true);
   // TODO 这个VarisNull检测常常不好使
   if not VarisNull(cmdCtrl) then

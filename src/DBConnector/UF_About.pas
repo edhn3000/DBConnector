@@ -69,7 +69,7 @@ end;
 procedure TF_About.FormCreate(Sender: TObject);
 begin
   lblSoftVersion.Caption := gC_AppName + ' ' +
-    GetFileVersion(Application.ExeName);
+    TFileUtil.GetFileVersion(Application.ExeName);
 end;
 
 end.

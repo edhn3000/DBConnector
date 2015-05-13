@@ -259,8 +259,10 @@ end;
 
 procedure TFM_DBOperate.ReCreateDBConnect(dbt: TDBType);
 begin
-  if Assigned(DBConnect) then
+  if Assigned(DBConnect) then begin
+    DBConnect._Release;
     DBConnect := nil;
+  end;
   DBConnect := TDBConnectManager.CreateDBConnect(dbt);
   DBConnect.OnConnected := OnConnected;
   DBConnect.OnDisConnected := OnDisConnected;  

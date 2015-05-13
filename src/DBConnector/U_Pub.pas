@@ -33,6 +33,7 @@ type
     // 连接数据库，此方法调用实际的连接处理，并发送消息使程序更新界面和各frame的数据
     function OpenDB(sDataSource, sUser, sPwd: string;
       dbt: TDBType; dbet: TDBEngineType): Boolean;
+    function CloseDB(): Boolean;
 
     // 注册frame，每个dbframe创建时在globa处注册，global将负责其状态和数据的更新
     procedure RegisterFrame(frame: TFM_DBOperate);
@@ -58,7 +59,7 @@ type
 var
   g_frmDBOperate: TFM_DBOperate;
   g_Log: TLogManager;
-  g_Global: TGlobal;
+  g_Global: TGlobal = nil;
 
 implementation
 
@@ -126,8 +127,10 @@ end;
 destructor TGlobal.Destroy;
 begin
   RegisterFrames.Free;
-  if Assigned(DBConnect) then
-    DBConnect := nil;;
+  if Assigned(DBConnect) then begin
+    DBConnect._Release;
+    DBConnect := nil;
+  end;
   DBConfigList.Free;
   inherited;
 end;
@@ -175,8 +178,10 @@ end;
 function TGlobal.OpenDB(sDataSource, sUser, sPwd: string; dbt: TDBType;
   dbet: TDBEngineType): Boolean;
 begin
-  if Assigned(DBConnect) then
+  if Assigned(DBConnect) then begin
+    DBConnect._Release;
     DBConnect := nil;
+  end;
   DBConnect := TDBConnectManager.OpenDB(sDataSource, sUser, sPwd, dbt, dbet);
   Result := DBConnect.Connected;
   g_DBTreeFunc.SetDBConnect(Self.DBConnect);
@@ -190,8 +195,15 @@ begin
   begin 
     SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_FAIL,
       0, 0);
-  end;  
-end; 
+  end;
+end;
+
+function TGlobal.CloseDB: Boolean;
+begin
+  Result := DBConnect.CloseDB;
+  DBConnect._Release;
+  DBConnect := nil;
+end;
 
 procedure TGlobal.ShareDB(DB: IDBConnect);
 begin
@@ -205,7 +217,8 @@ begin
   end
   else if (DBConnect.DBEngine.GetDBType <> DB.DBEngine.GetDBType) then
   begin
-    DBConnect := nil;;
+    DBConnect._Release;
+    DBConnect := nil;
     DBConnect := TDBConnectManager.CreateDBConnect(DB.DBEngine.GetDBType);
 
     DBConnect.ShareEngine(DB.DBEngine, True);
@@ -253,11 +266,12 @@ begin
 end;
 
 initialization
-  g_Global := TGlobal.Create;
+  if not Assigned(g_Global) then
+    g_Global := TGlobal.Create;
+
 finalization
-//  m_DB.Free;
-//  m_DBList.Free;
-  g_Global.Free;
+  if Assigned(g_Global) then
+    FreeAndNil(g_Global);
 
 
 end.
