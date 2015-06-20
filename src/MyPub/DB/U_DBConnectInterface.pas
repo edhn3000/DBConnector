@@ -72,6 +72,7 @@ type
     procedure SetOnExecLineChange(value: TExecLineChangeEvent); 
     function GetOnExecuted: TNotifyEvent;
     procedure SetOnExecuted(value: TNotifyEvent);
+    function GetLastElapsedMilis: Double;
 
     // propery          
     property DBType: TDBType read GetDBType;

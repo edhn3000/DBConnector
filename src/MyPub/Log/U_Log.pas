@@ -2,7 +2,7 @@ unit U_Log;
 
 interface
 uses
-  Windows, SysUtils, Dialogs, Log4D;
+  Windows, SysUtils, Dialogs;
 
 const
   C_LogLevel_DEBUG = 1;
@@ -16,44 +16,39 @@ type
   TSysLog = class
   private
     FLogfile: TextFile;
+    FLogOpened: Boolean;
   protected
     FOwner: TObject;
     FRelativePath: string;
     FBlockFile: Boolean;
     FLogFileName: string;
     FShowToViewer: Boolean;
-    procedure LogToDebugViewer(const AMsg: string; nLevel: Integer); virtual;
+    FMaxLogCount: Integer;
+
+    function getModulePath: String;
+    procedure OpenLogFile();
+    procedure CloseLogFile();
     procedure NewLogFile(const sFilename: string);
+    procedure LogToDebugViewer(const AMsg: string; nLevel: Integer); virtual;
   public
     property RelativePath: String read FRelativePath write FRelativePath;
     property BlockFile: Boolean read FBlockFile write FBlockFile;
     property LogFileName: string read FLogFileName write FLogFileName;
     property ShowToViewer: Boolean read FShowToViewer write FShowToViewer;
+    property MaxLogCount: Integer read FMaxLogCount write FMaxLogCount;
+
     constructor Create(owner: TObject = nil; blockFile: Boolean = True);
     destructor Destroy; override;
 
     class function GetLogLevelCN(nLevel: Integer): String;
 
     procedure InitLogger(fileName: string); virtual;
-    procedure CloseLogger;
+    procedure CloseLogger; virtual;
     procedure Log(const AMsg: string; nLevel: Integer); virtual;
     procedure Debug(AMsg: string);
     procedure Info(AMsg: string);
     procedure Warn(AMsg: string);
     procedure Error(AMsg: string; e: Exception = nil);
-  end;
-
-  { TSysLog4d }
-  TSysLog4d = class(TSysLog)
-  private
-    FLogger: TLogLogger;
-  public
-    constructor Create(owner: TObject = nil; blockFile: Boolean = True);
-    destructor Destroy; override;
-
-    procedure InitLogger(configFile: string); override;
-    procedure CloseLogger;
-    procedure Log(const AMsg: string; nLevel: Integer); override;
   end;
 
 var
@@ -67,18 +62,6 @@ uses
   DateUtils;
 var
   m_dllPath: String;
-
-function getDllPath: String;
-var
-  DllPath: array[0..255] of WideChar;
-begin
-  if m_dllPath = '' then
-  begin
-    GetModuleFileName(HInstance, DllPath, 255);
-    m_dllPath := ExtractFilePath(StrPas(DllPath));
-  end;
-  Result := m_dllPath;
-end;
 
 function GetFileModifiedTime(const FileName: string): TDateTime;
 var
@@ -107,12 +90,22 @@ end;
 
 { TSysLog }
 
+function TSysLog.getModulePath: String;
+var
+  DllPath: array[0..255] of WideChar;
+begin
+  if m_dllPath = '' then
+  begin
+    GetModuleFileName(HInstance, DllPath, 255);
+    m_dllPath := ExtractFilePath(StrPas(DllPath));
+  end;
+  Result := m_dllPath;
+end;
+
 procedure TSysLog.CloseLogger;
 begin
-  if FBlockFile then
-  begin
-    Flush(FLogfile);
-    CloseFile(FLogfile);
+  if FBlockFile then begin
+    CloseLogFile;
   end;
 //  Info('===========================结束记录=================================');
 end;
@@ -122,12 +115,33 @@ begin
   FOwner := owner;
   FBlockFile := blockFile;
   FShowToViewer := True;
+  FLogOpened := False;
+  FMaxLogCount := 7;
+end;
+
+procedure TSysLog.OpenLogFile;
+begin
+  if not FLogOpened then begin
+    AssignFile(FLogfile,FLogFileName);
+    Append(FLogfile);
+    FLogOpened := True;
+  end;
+end;
+
+procedure TSysLog.CloseLogFile;
+begin
+  if FLogOpened then begin
+    Flush(FLogfile);
+    CloseFile(FLogfile);
+    FLogOpened := False;
+  end;
 end;
 
 procedure TSysLog.NewLogFile(const sFilename: string);
 var
-  sNewFileName: string;
+  sNewFileName, sOldLogFile: string;
   fileDate: TDateTime;
+  i: Integer;
 begin
   if FileExists(sFilename) then
   begin
@@ -141,6 +155,20 @@ begin
     end;
   end;
 
+  // 删除过多文件
+  if FMaxLogCount > 0 then begin
+    fileDate := Now - FMaxLogCount;
+    sOldLogFile := sFilename + '.' + FormatDateTime('yyyymmdd', fileDate);
+    repeat
+      if FileExists(sOldLogFile) then
+        DeleteFile(sOldLogFile)
+      else
+        Break;
+      fileDate := fileDate - 1;
+      sOldLogFile := sFilename + '.' + FormatDateTime('yyyymmdd', fileDate);
+    until not FileExists(sOldLogFile);
+  end;
+
   if not FileExists(sFilename) then
     FileClose(FileCreate(sFilename));
 end;
@@ -150,7 +178,7 @@ var
   sDir: String;
 begin
   if FRelativePath = '' then
-    sDir := getDllPath
+    sDir := getModulePath
   else
     sDir := FRelativePath;
   FLogFileName := IncludeTrailingPathDelimiter(sDir) + fileName;
@@ -160,10 +188,8 @@ begin
 
   NewLogFile(FLogFileName);
 
-  if FBlockFile then
-  begin
-    AssignFile(FLogfile,FLogFileName);
-    Append(FLogfile);
+  if FBlockFile then begin
+    OpenLogFile;
   end;
 
 //  Info('===========================开始记录=================================');
@@ -178,10 +204,8 @@ begin
     if ShowToViewer then
       LogToDebugViewer(AMsg, nLevel);
 
-    if not FBlockFile then
-    begin
-      AssignFile(FLogfile, FLogFileName);
-      Append(FLogfile);
+    if not FBlockFile then begin
+      OpenLogFile;
     end;
     try
       if Assigned(FOwner) then
@@ -192,10 +216,8 @@ begin
         TSysLog.GetLogLevelCN(nLevel), GetCurrentThreadId, AMsg]));
       Flush(FLogfile);
     finally
-      if not FBlockFile then
-      begin
-        Flush(FLogfile);
-        CloseFile(FLogfile);
+      if not FBlockFile then begin
+        CloseLogFile;
       end;
     end;
   end;
@@ -248,74 +270,11 @@ begin
   end;
 end;
 
-{ TSysLog4d }
-
-procedure TSysLog4d.CloseLogger;
-begin
-
-//  Info('===========================结束记录=================================');
-end;
-
-constructor TSysLog4d.Create(owner: TObject; blockFile: Boolean);
-begin
-  FBlockFile := blockFile;
-  FOwner := owner;
-  FShowToViewer := True;
-end;
-
-destructor TSysLog4d.Destroy;
-begin
-
-  inherited;
-end;
-
-procedure TSysLog4d.InitLogger(configFile: string);
-var
-  sDir, configFileName: String;
-begin
-  if FRelativePath = '' then
-    sDir := getDllPath
-  else
-    sDir := FRelativePath;
-  Log4D.relativePath := sDir;
-  configFileName := sDir + configFile;
-  TLogPropertyConfigurator.Configure(configFileName);
-  FLogger := TLogLogger.GetLogger('logger');
-  FLogFileName := '';
-
-//  Info('===========================开始记录=================================');
-end;
-
-procedure TSysLog4d.Log(const AMsg: string; nLevel: Integer);
-begin
-  if (nLevel >= G_LogLevel) or (nLevel = C_LogLevel_ERROR) then
-  begin
-    if ShowToViewer then
-      LogToDebugViewer(AMsg, nLevel);
-
-    case nLevel of
-      C_LogLevel_DEBUG: begin
-        FLogger.Log(Log4D.Debug, AMsg);
-      end;
-      C_LogLevel_INFO: begin
-        FLogger.Log(Log4D.Info, AMsg);
-      end;
-      C_LogLevel_WARN: begin
-        FLogger.Log(Log4D.Warn, AMsg);
-      end;
-      C_LogLevel_ERROR: begin
-        FLogger.Log(Log4D.Error, AMsg);
-      end;
-      else begin
-        // unknown level
-      end;
-    end;
-  end;
-end;
-
 initialization
 
 finalization
+  if Assigned(SysLog) then
+    FreeAndNil(SysLog);
 
 end.
 

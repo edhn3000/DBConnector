@@ -126,7 +126,7 @@ type
     FSQLHistory: TStrings;                         // sql执行历史
     FEditorState: TEditorState;                    // 编辑器状态，见TEditorState
     FEditStateChanged: TEditStateChangedEvent;     // 编辑器状态改变事件
-    FExecIng: Boolean;
+    FExecing: Boolean;
     FExecThread: TCustomThread;
 
     // 将qry中数据展示在dbgrid中
@@ -159,16 +159,16 @@ type
     procedure SQLHistoryMenuClick(Sender: TObject);
     // 释放本frame保存的dataset对象
     procedure FreeAndNilDataSet;
-    
+
     function GetCanExport: Boolean;
     procedure DoExecuteLastSql;
     procedure OnExecuteSql(Sender: TObject);
   public
-    CurrPage: Integer;                        // 当前页号，分页功能相关
+//    CurrPage: Integer;                        // 当前页号，分页功能相关
     DBConnect: IDBConnect;                    // 数据库对象，本frame专用
     FileName: string;                         // 编辑的文件名，在编辑文件模式中有效
     property ExecThread: TCustomThread read FExecThread;
-    property LastExecTimeStr: string read getLastExecTimeStr;     
+    property LastExecTimeStr: string read getLastExecTimeStr;
     property RecordCount: Integer read getRecordCount;
     property LastSQL: string read GetLastSQL write SetLastSQL;
     property Editor: TSynEdit read GetEditor;
@@ -176,7 +176,7 @@ type
     property EditStateChanged: TEditStateChangedEvent read FEditStateChanged
       write FEditStateChanged;
     property CanExport: Boolean read GetCanExport;
-    property ExecIng: Boolean read FExecIng;
+    property Execing: Boolean read FExecing;
   public
     constructor Create(AOwner: TComponent);override;
     destructor Destroy; override;
@@ -186,7 +186,7 @@ type
       sSpaceBetween: string = ' ');
 
     // 执行sql
-    function ExecuteSql(sSqlText: string): Integer; 
+    function ExecuteSql(sSqlText: string): Integer;
     procedure StopExec();
 //    function ExecuteSqlList(sqlList: TStrings):Integer;
     // 在hintpanel上显示信息
@@ -208,7 +208,7 @@ type
     procedure OnDisConnected(Sender: TObject);
 
     // 重新创建该frame保存的dbconnector对象
-    procedure ReCreateDBConnect(dbt: TDBType);   
+    procedure ReCreateDBConnect(dbt: TDBType);
     procedure ShareDBConnect(db: IDBConnect);
 
     // 刷新UI各控件状态
@@ -247,13 +247,13 @@ constructor TFM_DBOperate.Create(AOwner: TComponent);
 begin
   inherited;
   ShowClient(false);
-  CurrPage := 1;
+//  CurrPage := 1;
   FnPnlTopLastHeight := 0;
   FSQLHistory := TStringList.Create;
   RefreshUI;
   dbgrdData.OnSelectedField := SelectedField;
-  EditorState := esNone;        
-  g_Global.RegisterFrame(Self); 
+  EditorState := esNone;
+  g_Global.RegisterFrame(Self);
   FExecThread := TCustomThread.Create(TCustomThreadProxy.Create(DoExecuteLastSql), False);
 end;
 
@@ -265,10 +265,10 @@ begin
   end;
   DBConnect := TDBConnectManager.CreateDBConnect(dbt);
   DBConnect.OnConnected := OnConnected;
-  DBConnect.OnDisConnected := OnDisConnected;  
+  DBConnect.OnDisConnected := OnDisConnected;
   DBConnect.OnLog := OnDBLog;
   DBConnect.OnExecuted := Self.OnExecuteSql;
-end; 
+end;
 
 procedure TFM_DBOperate.ShareDBConnect(db: IDBConnect);
 begin
@@ -338,7 +338,7 @@ begin
   begin
     if not Active then
       Exit;
-      
+
     First;
     if Fields.Count = 0 then
       Exit;
@@ -351,7 +351,7 @@ begin
     dlgExport.Filter := C_sFilterStr;
     // TODO: 导出的内容不光是表   前缀要分析一下
     dlgExport.FileName := C_FilePrefix_InsertTable + TSqlUtils.getTableNameBySQL(LastSQL);
-    
+
     dlgExport.InitialDir := GetAppRootPath;
     if not dlgExport.Execute then
       Exit;
@@ -371,7 +371,7 @@ begin
     dlgExport.Free;
     dbgrdData.Columns.EndUpdate;
     actExport.Enabled := True;
-  end; 
+  end;
 end;
 
 procedure TFM_DBOperate.ExportQuery(AQry: TADOQuery; AFileName,
@@ -380,8 +380,8 @@ const
   C_sSeparatorLine = '-';
 var
   slstExport: TStringList;
-begin         
-  slstExport := TStringList.Create; 
+begin
+  slstExport := TStringList.Create;
   try
     if ExtractFileExt(AFileName) = '.xls' then
     begin
@@ -417,7 +417,7 @@ begin
     dsData.DataSet.Free;
     dsData.DataSet := nil;
   end;
-end;    
+end;
 
 function TFM_DBOperate.GetCanExport: Boolean;
 begin
@@ -446,7 +446,7 @@ begin
       pmAdjust.Items[i].Click;
       Break;
     end;
-  end;  
+  end;
 end;
 
 procedure TFM_DBOperate.btnSortOnColumnClickClick(Sender: TObject);
@@ -466,20 +466,20 @@ procedure TFM_DBOperate.DoExecuteLastSql();
 begin
   dbmmoShowFieldDetail.DataField := '';
 
-  FExecIng := True;
+  FExecing := True;
   try
 //    FdLastExecTime := Now;
   //  dsData.DataSet.DisableControls;
     Self.DBConnect.ExecSqlText(LastSQL, gC_Delimiter, dsData.DataSet);
   //  dsData.DataSet.EnableControls;
   finally
-    FExecIng := False;
+    FExecing := False;
   end;
 end;
 
 procedure TFM_DBOperate.OnExecuteSql(Sender: TObject);
 begin
-//  SendMessage(Self.Handle, WM_FRAME_SHOW_QUERY, 0, 0);  
+//  SendMessage(Self.Handle, WM_FRAME_SHOW_QUERY, 0, 0);
   if Self.DBConnect.Connected and Self.DBConnect.LastOperSucc then
   begin
     ShowQryData(dsData.DataSet);
@@ -487,28 +487,29 @@ begin
     ShowExecTime;
     ShowRecordCount;
   end;
-end; 
+end;
 
 function TFM_DBOperate.ExecuteSql(sSqlText: string): Integer;
 begin
   Result := 0;
-  if Trim(sSqlText) = '' then Exit;
+  if Trim(sSqlText) = '' then
+    Exit;
 
-  if LastSQL <> sSqlText then
-  begin
+//  if LastSQL <> sSqlText then
+//  begin
     LastSQL := sSqlText;
-    CurrPage := 1;
-  end;
-  Result := 1;
+//    CurrPage := 1;
+//  end;
   ExecThread.Resume;
+  Result := 1;
 end;
 
 procedure TFM_DBOperate.StopExec;
 begin
-  if Self.ExecIng then
-    ExecThread.Abort();
   if Assigned(Self.DBConnect) then
     Self.DBConnect.StopExec();
+  if Self.Execing then
+    ExecThread.Abort();
 end; 
 
 procedure TFM_DBOperate.ShowQryData(qry: TDataSet);
@@ -662,11 +663,8 @@ function TFM_DBOperate.getLastExecTimeStr: string;
 var
   d: Double;
 begin
-  d := DBConnect.DBEngine.GetLastElapsedMilis;
-  if d < 1000 then
-    Result := commonFunc.PrecisionNumStr(FloatToStr(d), 3) + '毫秒'
-  else
-    Result := commonFunc.PrecisionNumStr(FloatToStr(d), 3) + '秒';
+  d := DBConnect.GetLastElapsedMilis;
+  Result := commonFunc.PrecisionNumStr(FloatToStr(d), 3) + '毫秒';
 end;
 
 procedure TFM_DBOperate.btnCloseMsgClick(Sender: TObject);

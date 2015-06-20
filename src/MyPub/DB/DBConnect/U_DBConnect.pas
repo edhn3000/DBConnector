@@ -24,7 +24,7 @@ uses
   SqlExpr, SimpleDS,
   U_DBConnectInterface, U_DBEngineInterface,  
   U_TableInfo, U_FieldInfo,
-  U_fStrUtil,
+  U_fStrUtil, U_DBCommand,
   U_PlanarList, U_JSON, U_TextFileWriter;
 
 type           
@@ -56,6 +56,7 @@ type
     FLastQry       : TDataSet;                   // 最近一个qry
     FLastSQLType   : TDBConnectSQLType;          // 最近一个sql的类型
     FLastOperSucc  : Boolean;                    // 最近一次执行的成功与否
+    FLastElapsedMillis: Double;                  // 最后执行查询的消耗时间
 
     // 标志
     FStopExec      : Boolean;                    // 停止执行的标志
@@ -78,7 +79,7 @@ type
     FOnDisConnected: TNotifyEvent;               // 事件 断开连接时触发
     FOnExecuted    : TNotifyEvent;
 
-    FDBCommandManager: TObject;    // 避免单元循环引用暂用TObject
+    FDBCommandManager: TDBCommandManager;    // 避免单元循环引用暂用TObject
                                 
     function GetLog: TStrings;
     function GetLastError: string;
@@ -93,7 +94,7 @@ type
 
     function GetMaxRecords: Integer;
     procedure SetMaxRecords(value: Integer);
-    procedure SetExecLine(value: Integer);   
+    procedure SetExecLine(value: Integer);
     function GetPageIndex: Integer;
     procedure SetPageIndex(value: Integer);
     function GetDropNoError: Boolean;
@@ -102,6 +103,7 @@ type
     procedure SetVariables(value: TStringList);
     function GetSystemObject: Boolean;
     procedure SetSystemObject(value: Boolean);
+    function GetLastElapsedMilis: Double;
 
     function GetDBType(): TDBType;                                                        
     function GetDBEngine(): IDBEngine;
@@ -294,15 +296,25 @@ type
   // 传入连接串，将其拆分，要求形式为如下
   // oracle kbuser/tusc@tnsname|SID, IP, Port, Protocol
   // access tax/tax@db,Secured
-  function SplitConnectParams(sConnectCmd: string; var dbt: TDBType;
-    var sUser, sPass, sDB, sOtherDBParam: string; var sErrMsg: string): Boolean;
+//  function SplitConnectParams(sConnectCmd: string; var dbt: TDBType;
+//    var sUser, sPass, sDB, sOtherDBParam: string; var sErrMsg: string): Boolean;
 
 
 implementation
 
 uses
   SysUtils, StrUtils, Forms,
-  U_DBCommand, U_DBEngineFactory, U_SqlUtils;
+  U_DBEngineFactory, U_SqlUtils;
+
+function GetMillisFromDateTime(dt: TDateTime): Double;
+var
+  fractional: Double;
+  fsResult: Double;
+begin
+  fractional := dt - Trunc(dt);
+  fsResult := fractional * 24 * 3600;  // 现在单位是秒
+  Result := fsResult*1000;
+end;
 
 
 function SplitConnectParams(sConnectCmd: string; var dbt: TDBType;
@@ -365,7 +377,7 @@ begin
     params.Free;
   end;
   Result := True;
-end;  
+end;
 
 { TEffectRowCounter }
 
@@ -458,6 +470,7 @@ constructor TDBConnect.Create;
 begin       
   FLastOperSucc := True;
   FLastSQLType := dbcstCommand;
+  FLastElapsedMillis := 0;
 
   FStopExec := False;
   FStopExeced := True;
@@ -474,7 +487,7 @@ begin
   FPageIndex := 1;
 
   FDBCommandManager := TDBCommandManager.Create;
-  TDBCommandManager(FDBCommandManager).DBConnect := Self;
+  FDBCommandManager.DBConnect := Self;
 
   ResetParams;
   FDBEngine := nil;
@@ -606,16 +619,13 @@ begin
   if SameText(sCommandContent, 'delete') then begin
     Inc(FRowCounter.Delete, nEffectRows);
     AddLog(Format('%s: 删除的行数%d',[sLogPrefix, nEffectRows]));
-  end 
-  else if SameText(sCommandContent, 'insert') then begin
+  end else if SameText(sCommandContent, 'insert') then begin
     Inc(FRowCounter.Insert, nEffectRows);
     AddLog(Format('%s: 插入的行数%d',[sLogPrefix, nEffectRows]));
-  end
-  else if SameText(sCommandContent, 'update') then begin
+  end else if SameText(sCommandContent, 'update') then begin
     Inc(FRowCounter.Update, nEffectRows);
     AddLog(Format('%s: 更新的行数%d',[sLogPrefix, nEffectRows]));
-  end
-  else if SameText(sCommandContent, 'create') then begin
+  end else if SameText(sCommandContent, 'create') then begin
     if (nEffectRows >= 0) then
       AddLog(Format('%s: 创建成功。表名=%s',[sLogPrefix, relData]))
     else
@@ -623,8 +633,7 @@ begin
   end else if SameText(sCommandContent, 'drop') then begin
     if (nEffectRows >= 0) then
       AddLog(Format('%s: 销毁成功。表名=%s',[sLogPrefix, relData]))
-    else
-    begin
+    else begin
       if FDropNoError then
         // 开启此开关，失败时不记录日志（但也不会记录成功日志）
       else
@@ -636,7 +645,7 @@ begin
       AddLog(Format('%s: 更新Blob成功。影响的数据行数%d',[sLogPrefix, nEffectRows]))
     else
       AddLog(Format('%s: 更新Blob失败。',[sLogPrefix, nEffectRows]));
-  end else begin
+  end else begin  // 其他影响行数
     if (nEffectRows >= 0) then
       AddLog(Format('%s: 执行成功。影响的数据行数%d',[sLogPrefix, nEffectRows]))
     else
@@ -675,41 +684,29 @@ begin
     sRealSql := Asql;
   
   try
-    if AnsiStartsText(C_sHeadFlag_Script, sRealSql) then    // 执行脚本
-    begin
+    if AnsiStartsText(C_sHeadFlag_Script, sRealSql) then begin   // 执行脚本
       nOneExecResult := ExecScriptFile(Copy(sRealSql,
         1+Length(C_sHeadFlag_Script), MaxInt), theQry);
       bError := nOneExecResult < 0;
       Result := nOneExecResult;
-    end
-    else if AnsiStartsText('exec',sRealSql) then            // 存储过程
-    begin
+    end else if AnsiStartsText('exec',sRealSql) then  begin      // 存储过程
       //TODO:
       bError := False;
-    end  
-    else
-    begin                                                   // 一般sql
+    end else begin                                                   // 一般sql
       // 变量替换处理
-      if Pos(C_sDBCmdParam_Var_Start, sRealSql) > 0 then
-      begin
+      if Pos(C_sDBCmdParam_Var_Start, sRealSql) > 0 then begin
         SetVariableValue(sRealSql);
       end;
       FLastQry := theQry; 
-      if bOpen then
-      begin
-        if FMaxRecords > 0 then
-        begin
+      if bOpen then begin
+        if FMaxRecords > 0 then begin
           sRealSql := GetMaxRecordSQLCondition(FMaxRecords*FPageIndex, sRealSql);
           bError := not DBEngine.ExecQuery(theQry, sRealSql)
-        end
-        else
-        begin
+        end else begin
           bError := not DBEngine.ExecQuery(theQry, sRealSql);
         end;
         FLastSQLType := dbcstQuery;
-      end
-      else
-      begin
+      end else begin
         nOneExecResult := DBEngine.ExecUpdate(theQry, sRealSql);
         bError := nOneExecResult = C_nTDBE_ERROR_EXECFAIL;
         Result := nOneExecResult;
@@ -717,8 +714,7 @@ begin
       end;
     end;
   except
-    on ex: Exception do
-    begin
+    on ex: Exception do begin
       bError := True;
       sError := ex.Message;
     end;
@@ -728,12 +724,10 @@ begin
   FLastSQL := sRealSql;     
   FLastOperSucc := not bError;
 
-  if bError then
-  begin
+  if bError then begin
     if (LowerCase(sSqlCommand) = 'drop') and FDropNoError then
       //
-    else
-    begin       
+    else begin
       Inc(FRowCounter.Error);
       FRowCounter.AddErrorLineNo(FCurrExecLine);
       Result := C_nTDBE_ERROR_EXECFAIL;
@@ -748,8 +742,7 @@ begin
     nOneExecResult := TDBC_ERROR_EXECFAIL;
   end;
 
-  if (not bOpen) then
-  begin
+  if (not bOpen) then begin
     AddSqlExecLog(nOneExecResult, sSqlCommand, sRelData);
   end;
 end;
@@ -760,6 +753,7 @@ var
   TheSql: string;
   sSummeryLog: string;
   sOneLine: string;
+  execTime: Double;
 
   function GetCombineSql(sqlList: TStrings; var nStartIndex: Integer): string;
   var
@@ -816,35 +810,32 @@ begin
   SetExecLine(1);
   FStopExec := False;
   FStopExeced := False;
+  execTime := Now;
 //  ClearLog;       // 错误列表清空
   i := 0;
   FRowCounter.ReSet;
-  while i <= slstSqlList.Count - 1 do
-  begin        
+  while i <= slstSqlList.Count - 1 do begin
     Application.ProcessMessages;
     
     SetExecLine(i);
-    if FStopExec then   // 退出标志
-    begin
+    if FStopExec then begin  // 退出标志
       FStopExeced := True;
       Break;
     end;
 
     sOneLine := Trim(slstSqlList[i]);
-    if sOneLine = '' then
-    begin
+    if sOneLine = '' then begin
       Inc(i);
       Continue;                      // 脚本中的空行
     end;
     // 单行注释直接跳过
-    if TSqlUtils.IsSingleLineComment(sOneLine) then
-    begin
+    if TSqlUtils.IsSingleLineComment(sOneLine) then begin
       TheSql := Trim(TSqlUtils.DeleteSQLComment(sOneLine, True));
-      if TDBCommandManager(FDBCommandManager).IsDBConnectCommand(TheSql) then
+      if FDBCommandManager.IsDBConnectCommand(TheSql) then
       begin
         FLastQry := aQry;
         FLastSQLType := dbcstCommand;
-        nEffectRows := nEffectRows + TDBCommandManager(FDBCommandManager)
+        nEffectRows := nEffectRows + FDBCommandManager
           .ProcessCommand(TheSql);
       end;
       Inc(i);
@@ -853,23 +844,20 @@ begin
 
     TheSql := Trim(GetCombineSql(slstSqlList, i));
 
-    if TheSql = '' then
-    begin
+    if TheSql = '' then begin
       Inc(i);
       Continue;                             // 有效内容为空
     end;
 
     // ********特有数据库命令******** //
-    if TDBCommandManager(FDBCommandManager).IsDBConnectCommand(TheSql) then
-    begin
+    if FDBCommandManager.IsDBConnectCommand(TheSql) then begin
       FLastQry := aQry;
-      nEffectRows := nEffectRows + TDBCommandManager(FDBCommandManager).ProcessCommand(TheSql);
+      nEffectRows := nEffectRows + FDBCommandManager.ProcessCommand(TheSql);
       Inc(i);
       Continue;
     end;
 
-    if not Connected then
-    begin
+    if not Connected then begin
       nEffectRows := TDBC_ERROR_NOTCONNECT;
       Break;
     end;
@@ -878,8 +866,7 @@ begin
     TheSql := Trim(TheSql);  // 这个去空格只在给SQL.Text赋值之前做，确保后面判断执行方式时 无行首空格
 
     // 分号只用于分析结束位置，在实际执行的时候去掉
-    if Copy(TheSql, Length(TheSql), 1) = ';' then
-    begin
+    if Copy(TheSql, Length(TheSql), 1) = ';' then begin
       TheSql := Copy(TheSql, 1, Length(TheSql)-1);
     end;
     nEffectRows := nEffectRows + ExecOneSql(TheSql, aQry);
@@ -890,8 +877,7 @@ begin
   if Connected and (nEffectRows<0) then
     nEffectRows := TDBC_ERROR_EXECFAIL;
     
-  if FRowCounter.HasChanged then
-  begin
+  if FRowCounter.HasChanged then begin
     sSummeryLog := '';
     if FRowCounter.Delete <> 0 then
       sSummeryLog := sSummeryLog + Format(' 删除%d行',[FRowCounter.Delete]);
@@ -901,20 +887,19 @@ begin
       sSummeryLog := sSummeryLog + Format(' 更新%d行',[FRowCounter.Update]);
     if FRowCounter.Default <> 0 then
       sSummeryLog := sSummeryLog + Format(' 其他影响行数%d行',[FRowCounter.Default]);
-    if FRowCounter.Error <> 0 then
-    begin
+    if FRowCounter.Error <> 0 then begin
       sSummeryLog := sSummeryLog + Format(' 错误%d行',[FRowCounter.Error]);
       sSummeryLog := sSummeryLog + Format(' 错误行号=%s',[FRowCounter.GetErrorLinesText]);
     end;
-    if sSummeryLog <> '' then
-    begin        
+    if sSummeryLog <> '' then begin
       if FbInScript then         
-        AddLog('Summery'+'InScript'+': '+sSummeryLog)
+        AddLog('Summery InScript'+': '+sSummeryLog)
       else
-        AddLog('Summery'+': '+sSummeryLog);
+        AddLog('Summery: '+sSummeryLog);
     end;
   end;
 
+  FLastElapsedMillis := GetMillisFromDateTime(Now - execTime);
   Result := nEffectRows;
 end;
 
@@ -951,8 +936,7 @@ begin
   try
     try
       AScriptFile := GetValidFullPath(AScriptFile);
-      if not FileExists(AScriptFile) then
-      begin
+      if not FileExists(AScriptFile) then begin
         Result := TDBC_ERROR_SCRIPT_FILENOTEXISTS;  
         AddErrorLog('找不到脚本文件' + AScriptFile);
         Exit;
@@ -963,8 +947,7 @@ begin
       FbInScript := True;
       Result := ExecSqlList(slstScript,aQry);
     except
-      on ex: Exception do
-      begin
+      on ex: Exception do begin
         Result := C_nTDBE_ERROR_EXECFAIL;
         AddErrorLog('执行脚本文件出错。' + ex.Message);
       end;
@@ -1007,11 +990,9 @@ var
   i: Integer;
 begin
   Result := False;
-  for i := Low(dbetAry) to High(dbetAry) do
-  begin
+  for i := Low(dbetAry) to High(dbetAry) do begin
     CheckDBEngine(dbetAry[i]);
-    if DBEngine.IsEngineInstalled then
-    begin
+    if DBEngine.IsEngineInstalled then begin
       Result := DBEngine.OpenDB(sDataSource, sUser, sPwd, dbt);
       if Result then
         Break
@@ -1026,12 +1007,9 @@ function TDBConnect.OpenDB(sDataSource, sUser, sPwd: string;
   dbt: TDBType; dbet: TDBEngineType): Boolean;
 begin
   FDBType := dbt;
-  if dbet <> dbetAuto then
-  begin
+  if dbet <> dbetAuto then begin
     Result := TestOpenDB(sDataSource, sUser, sPwd, dbt, [dbet]);
-  end
-  else
-  begin
+  end else begin
     case dbt of
     dbtAccess, dbtAccess2007:
     begin
@@ -1053,8 +1031,7 @@ begin
     begin
       Result := TestOpenDB(sDataSource, sUser, sPwd, dbt, [dbetSqlite]);
     end;
-    else
-    begin
+    else begin
       Result := TestOpenDB(sDataSource, sUser, sPwd, dbt, [dbetADO,
         dbetDBExpress, dbetBDE]);
     end;
@@ -1066,8 +1043,7 @@ end;
 
 function TDBConnect.GetNewQuery: TDataSet;
 begin
-  if DBEngine = nil then
-  begin
+  if DBEngine = nil then begin
     Result := nil;
     Exit;
   end;
@@ -1086,8 +1062,7 @@ end;
 
 procedure TDBConnect.SetExecLine(value: Integer);
 begin
-  if FCurrExecLine <> value then
-  begin
+  if FCurrExecLine <> value then begin
     FCurrExecLine := value;
     if Assigned(FOnExecLineChange) then
       FOnExecLineChange(value);
@@ -1101,15 +1076,12 @@ var
   sValues: string;
   fld: TField;
 begin
-  with ADataSet do
-  begin
+  with ADataSet do begin
     List.BeginUpdate;
     List.Clear;
-    while not Eof do
-    begin
+    while not Eof do begin
       sValues := '';
-      for i := Low(FieldNames) to High(FieldNames) do
-      begin
+      for i := Low(FieldNames) to High(FieldNames) do begin
         fld := FieldByName(FieldNames[i]);
         if sValues = '' then
           sValues := fld.AsString
@@ -1129,24 +1101,19 @@ var
   sValues: string;
   sOwner, sName: string;
 begin
-  with ADataSet do
-  begin
+  with ADataSet do begin
     List.BeginUpdate;
     List.Clear;
-    while not Eof do
-    begin
+    while not Eof do begin
       sValues := '';
-      if SystemObject then
-      begin          
+      if SystemObject then begin
         sOwner := FieldByName('OWNER').AsString;
         sName := FieldByName('NAME').AsString;
         if LowerCase(sOwner) <> LowerCase(DBEngine.GetUserName) then
           sValues := sOwner + '.' + sName
         else        
           sValues := sName;
-      end
-      else
-      begin  
+      end else begin
         sName := FieldByName('NAME').AsString;
         sValues := sName;
       end;
@@ -1218,8 +1185,7 @@ begin
       if Result = '' then
         Result := 'Null';
     end;
-    else
-    begin
+    else begin
       if Result = '' then
         Result := 'Null';
     end;  
@@ -1246,8 +1212,7 @@ var
   sCondition: string;
 begin
   sCondition := '';
-  for i := 0 to Fields.Count - 1 do
-  begin
+  for i := 0 to Fields.Count - 1 do begin
     if sCondition = '' then
       sCondition := Format('%s=%s',[Fields.Items[i].FieldName,
         GetValidFieldValue(Fields.Items[i])])
@@ -1264,8 +1229,7 @@ var
   i: Integer;
   s: string;
 begin  
-  for i := 0 to Fields.Count - 1 do
-  begin
+  for i := 0 to Fields.Count - 1 do begin
     if s = '' then
       s := GetValidFieldValue(Fields.Items[i])
     else
@@ -1291,8 +1255,7 @@ begin
   try
     GetTableNames(list, qry);
     for i := 0 to list.Count - 1 do
-      if SameText(sTableName, list[i]) then
-      begin
+      if SameText(sTableName, list[i]) then begin
         Result := True;
         Break;
       end;
@@ -1313,8 +1276,7 @@ begin
   List := TTableInfoList.Create;
   try
     GetTableNames(StrList, AQry);
-    for i := 0 to StrList.Count - 1 do
-    begin
+    for i := 0 to StrList.Count - 1 do begin
       tableInfo := GetTableInfo(StrList[i]);
       List.Add(tableInfo);
     end;  
@@ -1367,8 +1329,7 @@ begin
   List.Clear;    
   fldList := GetFieldInfos(UpperCase(TableName), AQry);
   try
-    for i := 0 to fldList.Count - 1 do
-    begin
+    for i := 0 to fldList.Count - 1 do begin
       if not fldList.Items[i].Nullable then
         sNullable := 'Not Null'
       else
@@ -1416,8 +1377,7 @@ begin
   table.CheckUniqueFields := False;   //为了不影响速度，不自动检查唯一字段，在需要检查的地方再创建tableinfo对象完成
   if table.InitTableInfo(sTableName) then
     Result := table
-  else
-  begin
+  else begin
     table.Free;
     Result := nil;
   end;
@@ -1430,8 +1390,7 @@ var
 begin
   Result := False;
   sSql := SQL_COMMON_CHECK_FIELD_UNIQUE;
-  if ExecQuery(AQry, Format(sSql, [fieldName, tableName])) then
-  begin
+  if ExecQuery(AQry, Format(sSql, [fieldName, tableName])) then begin
     Result := AQry.Eof;
   end;
 end;
@@ -1445,8 +1404,7 @@ var
   field: TFieldItem;
   qry: TDataSet;
   qry2: TDataSet;
-  function InQry2(AFieldname: string): Boolean;
-  begin
+  function InQry2(AFieldname: string): Boolean; begin
     Result := False;
     qry2.First;
     while not qry2.Eof do
@@ -1463,8 +1421,7 @@ begin
   qry := GetNewQuery;
   qry2:= GetNewQuery;
   try
-    for i := 0 to fields.Count - 1 do
-    begin
+    for i := 0 to fields.Count - 1 do begin
       // 这里仅仅对int字段进行唯一检查
       if not (fields.Items[i].DataType in
          [ftInteger, ftSmallint, ftWord]) then
@@ -1483,13 +1440,11 @@ begin
        and ExecQuery(qry2, 'select distinct * from (' + sSql + ') where getcount > 1') then
     begin
       // 只需处理第一个记录
-      while not qry.Eof do
-      begin
+      while not qry.Eof do begin
         sFieldname := qry.FieldByName('FieldName').AsString;
         // findfielditem传入的参数和查询时起的别名有关，这里仍用了原字段名
         field := fields.FindFieldItem(sFieldname);
-        if field <> nil then
-        begin
+        if field <> nil then begin
           if not InQry2(sFieldname) then
             field.IsUnique := True;
         end;
@@ -1533,23 +1488,18 @@ begin
     slst.Add(Format('create table %s(', [tabInfo.TableName]));
     PlanarStringList := TPlanarStringList.Create;
     try
-      for i := 0 to fldList.Count - 1 do
-      begin
-        if i <> fldList.Count - 1 then
-        begin
+      for i := 0 to fldList.Count - 1 do begin
+        if i <> fldList.Count - 1 then begin
           PlanarStringList.Strs[i, 0] := '  ' + fldList.Items[i].FieldName + ' ';
           PlanarStringList.Strs[i, 1] := fldList.Items[i].GetDataTypeInSQL + ',';
-        end
-        else
-        begin
+        end else begin
           PlanarStringList.Strs[i, 0] := '  ' + fldList.Items[i].FieldName + ' ';
           PlanarStringList.Strs[i, 1] := fldList.Items[i].GetDataTypeInSQL;
         end;
       end;
       PlanarStringList.JustifyMode := pjmBothLeft;
       PlanarStringList.FormatItemLengths;
-      for i := 0 to PlanarStringList.Count-1 do
-      begin
+      for i := 0 to PlanarStringList.Count-1 do begin
         slst.Add(PlanarStringList.ItemStr[i]);
       end;  
     finally
@@ -1595,10 +1545,8 @@ begin
         tableName]));
     if option.DeleteTables then
       exportFile.WriteLine(Format('Delete from %s;',[tableName]));
-    if option.ExportData then
-    begin
-      if ExecQuery(qry, Format('select * from %s', [tableName])) then
-      begin
+    if option.ExportData then begin
+      if ExecQuery(qry, Format('select * from %s', [tableName])) then begin
         Result := ExportQuery(qry, exportFile, option.ClobInFile,
           option.RemoveBreakLine);
       end;
@@ -1620,8 +1568,7 @@ var
 begin
   if IsClobField(Field) or IsBlobField(Field) then
     s := 'null'
-  else
-  begin
+  else begin
     s := Self.GetValidFieldValue(Field, sValueDef);
   end;
   Result := s;
@@ -1645,21 +1592,18 @@ begin
   try
     slstItem.Add(sInsertSqlPrefix);
     tableInfo.Fields.ReadValuesFromFields(qry.Fields);
-    for n := 0 to qry.FieldCount - 1 do
-    begin
+    for n := 0 to qry.FieldCount - 1 do begin
       if FStopExec then
         Exit;       
       // blob 处理
-      if IsBlobField(qry.Fields[n]) and not qry.Fields[n].IsNull then
-      begin
+      if IsBlobField(qry.Fields[n]) and not qry.Fields[n].IsNull then begin
         fldItem := tableInfo.GetNewFieldItem;
         fldItem.InitByField(qry.Fields[n]);
         blobFields.Add(fldItem);
         sFieldValue := GetExportValidFieldValue(qry.Fields[n], '');
       end
       // clob 处理
-      else if IsClobField(qry.Fields[n]) then
-      begin
+      else if IsClobField(qry.Fields[n]) then begin
         if ClobInFile then
         begin
           sFieldValue := GetExportValidFieldValue(qry.Fields[n], '');
@@ -1686,20 +1630,17 @@ begin
     end;
     slstItem.Add(');');
     slstPlanar.AddItem(slstItem);
-    if blobFields.Count > 0 then
-    begin
+    if blobFields.Count > 0 then begin
       if SaveBlobs(blobFields, tableInfo, Format('%s%s%s', [
         ExtractFilePath(sExportFileName), tableInfo.TableName, C_sBlob_Dir_Name]),
-        json) then
-      begin
+        json) then begin
         slstPlanar.Add('--'+BuildCommandPrefix(C_sDBCommand_SQL)
           + ' ' + C_sHeadFlag_Blob + ' ' + json.ToString);
         // 这里给slstPlanar的行不需要进行二维排列,需要包含在排除行中
         slstPlanar.AddExcludeRow(slstPlanar.Count-1);
       end;
     end;    
-    if clobFields.Count > 0 then
-    begin
+    if clobFields.Count > 0 then begin
       if SaveClobs(clobFields, tableInfo, Format('%s%s%s', [
         ExtractFilePath(sExportFileName), tableInfo.TableName, C_sClob_Dir_Name]),
         json) then
@@ -1762,14 +1703,12 @@ begin
   try
     sTableName := TSqlUtils.GetTableNameBySQL(sSql);  
     tableInfo := GetTableInfo(sTableName);
-    if tableInfo = nil then     // 获取tableinfo失败
-    begin
+    if tableInfo = nil then begin    // 获取tableinfo失败
       AddErrorLog(Format('获取表%s的信息失败！', [sTableName]));
       Exit;
     end;
     // get fieldnames
-    for i := 0 to AQry.FieldCount - 1 do
-    begin
+    for i := 0 to AQry.FieldCount - 1 do begin
       if FStopExec then
         Exit;
       if sInsertFields = '' then
@@ -1786,16 +1725,13 @@ begin
     AQry.DisableControls;
     try
       AQry.First;
-      while not AQry.Eof do
-      begin
+      while not AQry.Eof do begin
         if FStopExec then
           Exit;
-        if (not bHasBlob) and (not bHasClob) then
-        begin         
+        if (not bHasBlob) and (not bHasClob) then begin
           slstItem := TStringList.Create;
           slstItem.Add(sInsertSql);
-          for i := 0 to AQry.FieldCount - 1 do
-          begin
+          for i := 0 to AQry.FieldCount - 1 do begin
             sFieldValue := GetExportValidFieldValue(AQry.Fields[i], '');
             if RemoveBreakLine then
               sFieldValue := StringReplace(sFieldValue, #$D#$A, ' ', [rfReplaceAll]);
@@ -1806,9 +1742,7 @@ begin
           end;
           slstItem.Add(');');
           slstPlanar.AddItem(slstItem);
-        end
-        else
-        begin
+        end else begin
           ProcessLobExport(AQry, tableInfo, sInsertSql, slstPlanar,
             exportFile.GetFileName, ClobInFile, RemoveBreakLine);
         end;
@@ -1887,6 +1821,11 @@ begin
   AddLog('Info: ' +sLog);
 end;
 
+function TDBConnect.GetLastElapsedMilis: Double;
+begin
+  Result := FLastElapsedMillis;
+end;
+
 function TDBConnect.GetLastError: string;
 begin
   if FLog.Count = 0 then
@@ -1963,8 +1902,7 @@ end;
 procedure TDBConnect.SetMaxRecords(value: Integer);
 begin
   FMaxRecords := value;
-  if Assigned(DBEngine) then
-  begin
+  if Assigned(DBEngine) then begin
     DBEngine.SetMaxRecords(value);
     if Assigned(FLastQry) then
       DBEngine.SetDataSetMaxRecords(FLastQry, value);
@@ -2033,11 +1971,9 @@ end;
 
 procedure TDBConnect.SetPageIndex(value: Integer);
 begin
-  if value > 0 then
-  begin
+  if value > 0 then begin
     if (FPageIndex <> value)
-       and (FLastQry <> nil) and (FLastSQL <> '')  then
-    begin
+       and (FLastQry <> nil) and (FLastSQL <> '')  then begin
       FPageIndex := value;
       ExecQuery(FLastQry, GetMaxRecordSQLCondition(FMaxRecords*FPageIndex,
         FLastSQL));
@@ -2148,8 +2084,7 @@ var
   i: Integer;
   sName, sValue: string;
   varList: TStrings;
-  function getValue(varname: string): string;
-  begin
+  function getValue(varname: string): string; begin
     // TODO: 仅为临时写法，有空改为SysVaList保存变量名与获取方法的方式
     // 系统变量
     if SameText(varname, C_sDBCmdParam_Var_Start
@@ -2163,8 +2098,7 @@ var
   end;  
 begin
   varList := fStrUtil.GetSubStrListWithRegx(C_sDBCmdParam_Regx_GetVar,s);
-  for i := 0 to varList.Count - 1 do
-  begin
+  for i := 0 to varList.Count - 1 do begin
     sName := varList[i];
     sValue := getValue(sName);
     if sName <> sValue then
@@ -2220,26 +2154,21 @@ begin
   try
     if tableInfo.PrimaryKeys.Count <> 0 then
       sCondition := GetFieldsKeyValuesStr(tableInfo.PrimaryKeys)
-    else
-    begin
+    else begin
       sCondition := GetFieldsKeyValuesStr(tableInfo.GetUniqueFields);
     end;
-    if sCondition = '' then
-    begin
+    if sCondition = '' then begin
       AddErrorLog('缺乏定位Blob字段的主键或唯一键。');
       Exit;
     end;
     sSql := Format('select * from %s where %s', [tableInfo.TableName,
       sCondition]);
-    if ExecQuery(qry, sSql) then
-    begin
+    if ExecQuery(qry, sSql) then begin
       num := 1;
-      if not qry.Eof then
-      begin
+      if not qry.Eof then begin
         json.AddField(C_JSON_KEY_SQL, sSql);
         // 每个字段增加一个json子对象
-        for i := 0 to blobFields.Count - 1 do
-        begin
+        for i := 0 to blobFields.Count - 1 do begin
           blobfield := qry.FieldByName(blobFields.Items[i].FieldName) as TBlobField;
           stream := TMemoryStream.Create;
           try
@@ -2291,26 +2220,21 @@ begin
   try
     if tableInfo.PrimaryKeys.Count <> 0 then
       sCondition := GetFieldsKeyValuesStr(tableInfo.PrimaryKeys)
-    else
-    begin
+    else begin
       sCondition := GetFieldsKeyValuesStr(tableInfo.GetUniqueFields);
     end;
-    if sCondition = '' then
-    begin
+    if sCondition = '' then begin
       AddErrorLog('缺乏定位Clob字段的主键或唯一键。');
       Exit;
     end;
     sSql := Format('select * from %s where %s', [tableInfo.TableName,
       sCondition]);
-    if ExecQuery(qry, sSql) then
-    begin
+    if ExecQuery(qry, sSql) then begin
       num := 1;
-      if not qry.Eof then
-      begin
+      if not qry.Eof then begin
         json.AddField(C_JSON_KEY_SQL, sSql);
         // 每个字段增加一个json子对象
-        for i := 0 to clobFields.Count - 1 do
-        begin
+        for i := 0 to clobFields.Count - 1 do begin
           clobfield := qry.FieldByName(clobFields.Items[i].FieldName) as TBlobField;
           slst := TStringList.Create;
           try

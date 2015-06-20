@@ -828,9 +828,10 @@ begin
         nPos := PosFrom(sNotWildCardInSub, S, nIndexMain);
         if nPos > 0 then
         begin
-          nIndexSub := nPos2;
           nIndexMain := nPos + Length(sNotWildCardInSub);
-          nMatchIndex := nPos - (nLengthSub - Length(sNotWildCardInSub));
+//          nMatchIndex := nPos - (nLengthSub - Length(sNotWildCardInSub));
+          nMatchIndex := nIndexSub;
+          nIndexSub := nPos2;
         end
         else
           Break;     // 后面的字符没有 说明是匹配失败的情况

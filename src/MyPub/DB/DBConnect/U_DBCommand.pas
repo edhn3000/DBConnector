@@ -11,7 +11,7 @@ interface
 
 uses
   ADODB, DB, Classes, Contnrs, Variants,
-  U_DBConnect, U_DBEngineInterface, U_DBConnectInterface;
+  U_DBEngineInterface, U_DBConnectInterface;
 
 type
 { TDBCommandProc }
@@ -99,6 +99,12 @@ type
 
   function BuildCommandPrefix(sCommand: string): string;
 
+  // 传入连接串，将其拆分，要求形式为如下
+  // oracle kbuser/tusc@tnsname|SID, IP, Port, Protocol
+  // access tax/tax@db,Secured
+  function SplitConnectParams(sConnectCmd: string; var dbt: TDBType;
+    var sUser, sPass, sDB, sOtherDBParam: string; var sErrMsg: string): Boolean;
+
 implementation
 
 uses
@@ -108,6 +114,68 @@ uses
 function BuildCommandPrefix(sCommand: string): string;
 begin
   Result := C_sHeadFlag_DBCommand + ' ' + sCommand;
+end;
+
+function SplitConnectParams(sConnectCmd: string; var dbt: TDBType;
+    var sUser, sPass, sDB, sOtherDBParam: string; var sErrMsg: string): Boolean;
+var
+  params: TStrings;
+  sParam: string;
+  nPos,nPos2,nPos3: Integer;
+begin
+  Result := False;
+  params := TStringList.Create;
+  try
+    fStrUtil.SplitEscapeQuote(sConnectCmd, ' ', '"', '\', params);
+    if params.Count < 2 then
+    begin
+      sErrMsg := 'Conn命令参数格式：DbTypeStr UserName/Password@DataSourceStr';
+      Exit;
+    end;
+
+    // 第一个参数 是数据库类型
+    dbt := StrToDBType(params[0]);
+    if dbt = dbtUnKnown then
+    begin
+      sErrMsg := '无法从参数1分析出数据库类型';
+      Exit;
+    end;
+
+    sParam := params[1];
+    // 第二个参数是User/Pass@DB
+    nPos  := Pos('/', sParam);
+    nPos2 := Pos('@', sParam);
+    nPos3 := Pos(C_sSEPARATOR_DATASOURCE, sParam);     // 可以没有
+    if nPos3 = 0 then
+    begin
+      nPos3 := MaxInt;
+      sOtherDBParam := '';
+    end
+    else
+    begin
+      sOtherDBParam := Copy(sParam, nPos3+1, MaxInt);
+      if Copy(sOtherDBParam, 1, 1) = '"' then
+        sOtherDBParam := Copy(sOtherDBParam, 2, MaxInt);
+      if Copy(sOtherDBParam, Length(sOtherDBParam), 1) = '"' then
+        sOtherDBParam := Copy(sOtherDBParam, 1, Length(sOtherDBParam)-1);
+    end;
+    if (nPos = 0) or (nPos2 = 0) then
+    begin
+      sErrMsg := '无法从参数2分析出用户信息';
+      Exit;
+    end;
+    sUser := Copy(sParam, 1, nPos-1);
+    sPass := Copy(sParam, nPos+1, nPos2-nPos-1);
+    sDB   := Copy(sParam, nPos2+1, nPos3-nPos2-1);
+
+    if Copy(sDB, 1, 1) = '"' then
+      sDB := Copy(sDB, 2, MaxInt);
+    if Copy(sDB, Length(sDB), 1) = '"' then
+      sDB := Copy(sDB, 1, Length(sDB)-1);
+  finally
+    params.Free;
+  end;
+  Result := True;
 end;
 
 { TDBCommand }

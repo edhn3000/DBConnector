@@ -140,6 +140,9 @@ type
     property OnDisConnected: TNotifyEvent read FOnDisConnected write FOnDisConnected;
   end;
 
+
+  function GetMillisFromDateTime(dt: TDateTime): Double;
+
 implementation  
 
 uses

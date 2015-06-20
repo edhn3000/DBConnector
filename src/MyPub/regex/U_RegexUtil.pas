@@ -4,6 +4,7 @@ unit U_RegexUtil;
  @date 2014-09-27
 }
 
+{$WARNINGS OFF}
 interface
 uses
   Contnrs, PerlRegEx, SysUtils, XMLDoc, Generics.Collections;
@@ -44,6 +45,7 @@ type
   返回值:    匹配成功返回TMatchResult对象（需外部Free），否则返回nil
 -------------------------------------------------------------------------------}
     function MatchFirst(sPattern: String; index: Integer; sContent: String): TMatchResult;
+    function MatchFirstStr(sPattern: String; index: Integer; sContent: String): String;
 
 {-------------------------------------------------------------------------------
   过程名:    MatchAll 匹配所有Match，每次匹配取指定index的结果
@@ -130,6 +132,21 @@ begin
     end;
   finally
     regex.Free;
+  end;
+end;
+
+function TRegexUtil.MatchFirstStr(sPattern: String; index: Integer;
+  sContent: String): String;
+var
+  mr: TMatchResult;
+begin
+  Result := '';
+  mr := MatchFirst(sPattern, index, sContent);
+  if mr <> nil then
+  try
+    Result := mr.MatchStr;
+  finally
+    mr.Free;
   end;
 end;
 
