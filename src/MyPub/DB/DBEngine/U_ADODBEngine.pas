@@ -72,8 +72,9 @@ begin
 end;
 
 procedure TADODBEngine.CommitTrans;
-begin  
-  FAdoConn.CommitTrans;
+begin
+  if FAdoConn.InTransaction then
+    FAdoConn.CommitTrans;
 end;
 
 procedure TADODBEngine.RollbackTrans;
@@ -179,11 +180,10 @@ begin
         while slst.Count < 2 do
           slst.Add('');
         sSec := slst[1];
-        if '' <> sSec then
+//        if '' <> sSec then
           sSec := Format(SYSDB_ACCESS, [sSec]);
         Result := Format(CONNSTR_ACCESS, [slst[0], sSec,
-                                                sUser, sPwd]);
-//        Result := Format(CONNSTR_DBF, [slst[0]]);
+                                                sUser, sPwd, sPwd]);
       end;
       dbtAccess2007:
       begin        
@@ -240,6 +240,10 @@ begin
           slst.Add('');
         Result := Format(CONNSTR_SYBASE, [slst[0], slst[1], slst[2],
                   sUser, sPwd]);
+      end;
+      dbtDBF:
+      begin
+        Result := Format(CONNSTR_DBF, [slst[0]]);
       end;
       else
       begin
@@ -309,7 +313,7 @@ end;
 
 function TADODBEngine.doExecUpdate(Ads: TDataSet; sSql: string):Integer;
 begin
-  inherited; 
+  inherited;
   with TADOQuery(Ads) do
   begin
     Close;

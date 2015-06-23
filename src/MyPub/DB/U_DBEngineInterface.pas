@@ -15,7 +15,8 @@ uses
 type     
   { TDBType 数据库类型,构造连接串时判断 }
   TDBType = (dbtUnKnown, dbtAccess, dbtAccess2007, dbtOracle, dbtSybase,
-             dbtMySql, dbtSybaseASA, dbtSQLite);
+             dbtMySql, dbtSybaseASA, dbtSQLite, dbtDBF);
+
   { TDBEngineType }
   TDBEngineType = (dbetAuto, dbetAdo, dbetBde, dbetDBExpress, dbetSQLite);
              
@@ -109,7 +110,8 @@ const
     + '%s'                                // Jet OLEDB:System database=%s;
 //    + 'Persist Security Info=False;'
     + 'User ID=%s;'
-    + 'Password=%s';
+    + 'Jet OLEDB:Database Password=%s;';
+//    + 'Password=%s;';
   SYSDB_ACCESS = 'Jet OLEDB:System database=%s;';
 
   // access 2007
@@ -123,7 +125,10 @@ const
   SYSDB_ACCESS2007 = SYSDB_ACCESS;
 
   CONNSTR_DBF =
+//    'Provider=Microsoft.Jet.OLEDB.4.0;Data Source=%s;Extended Properties=dBASE IV;User ID=Admin;Password=;';
     'Provider=Microsoft.Jet.OLEDB.4.0;Data Source=%s;Extended Properties=dBase 5.0;Persist Security Info=False';
+
+//  CONNSTR_DBF2 = 'Provider=ADsDSOObject;Encrypt Password=False;Data Source=%s;Mode=Read;Bind Flags=0;ADSI Flag=-2147483648';
 
   CONNSTR_ORACLE =
     'Provider=OraOLEDB.Oracle.1;' +

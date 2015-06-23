@@ -44,7 +44,8 @@ type
     function HasChanged: Boolean;
     function AllLineCount: Integer;
   end;
-{ TDBConnect 数据库连接类 }
+
+{ TDBConnect 通用的数据库连接类，改类不要包含抽象方法，使一般数据库类型可使用此类 }
   TDBConnect = class(TInterfacedObject, IDBConnect)
   private     
     FDBType        : TDBType;                    // 数据库类型
@@ -316,7 +317,6 @@ begin
   Result := fsResult*1000;
 end;
 
-
 function SplitConnectParams(sConnectCmd: string; var dbt: TDBType;
     var sUser, sPass, sDB, sOtherDBParam: string; var sErrMsg: string): Boolean;
 var
@@ -500,15 +500,17 @@ begin
 end;
 
 destructor TDBConnect.Destroy;
-begin                
-  FDBCommandManager.Free;
-
+begin
+  if Assigned(FDBCommandManager) then
+    FreeAndNil(FDBCommandManager);
   if Assigned(FRowCounter) then
     FreeAndNil(FRowCounter);
   if Assigned(FVariables) then
     FreeAndNil(FVariables);
-  if Assigned(FDBEngine) and not FEngineShared then
+  if Assigned(FDBEngine) and not FEngineShared then begin
+//    FDBEngine._Release;
     FDBEngine := nil;
+  end;
   if Assigned(FLog) then
     FreeAndNil(FLog);
   inherited;
@@ -813,6 +815,7 @@ begin
   execTime := Now;
 //  ClearLog;       // 错误列表清空
   i := 0;
+
   FRowCounter.ReSet;
   while i <= slstSqlList.Count - 1 do begin
     Application.ProcessMessages;
@@ -2022,8 +2025,9 @@ end;
 
 procedure TDBConnect.CheckDBEngine(Adbet: TDBEngineType);
 begin
-  if Assigned(FDBEngine) and (DBEngine.GetDBEngineType <> Adbet) then
+  if Assigned(FDBEngine) and (DBEngine.GetDBEngineType <> Adbet) then begin
     FDBEngine := nil;
+  end;
   if not Assigned(FDBEngine) then
     FDBEngine := GetNewDBEngine(Adbet);
   FDBEngine.SetOnConnected(FOnConnected);

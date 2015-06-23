@@ -71,6 +71,11 @@ type
     edtSqliteDBFile: TEdit;
     btnChooseSqliteDB: TButton;
     Label10: TLabel;
+    tsDBF: TTabSheet;
+    Label11: TLabel;
+    edtDBFSource: TEdit;
+    btnChooseDBF: TButton;
+    Label12: TLabel;
     procedure FormShow(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnChooseDBClick(Sender: TObject);
@@ -87,6 +92,7 @@ type
     procedure cbbOraSIDClick(Sender: TObject);
     procedure edtmslDataBaseDropDown(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure btnChooseDBFClick(Sender: TObject);
   private
     { Private declarations }
     FDBConfigList: TDBConfigList;
@@ -96,6 +102,8 @@ type
     procedure LoadOdbc;
     procedure LoadTnsNames;
 
+    function AnalyzeDialogInitDir(mainPath: String): String;
+
     procedure PmConfigItemCLick(Sender: TObject);
     procedure ChangeCurrnetUser;
     procedure SetCtrlEnable(ctrl: TWinControl; bEnable: Boolean);
@@ -104,6 +112,7 @@ type
     procedure CbxIndexToDBEngineType(var dbet: TDBEngineType);
     procedure CbxIndexToDBType(var dbt: TDBType);
     procedure DBTypeToCbxIndex(dbt: TDBType);
+    procedure SetPageIndex(index: Integer);
 
   protected                         
     procedure InitByDBInfo(Adbi: TDBConfig);      
@@ -135,8 +144,10 @@ const
   C_nDBTypeItemIndex_Sybase = 3;
   C_nDBTypeItemIndex_MySQL  = 4;
   C_nDBTypeItemIndex_SQLite = 5;
-  CBB_DBTYPE_ITEMS: array[0..5] of String = ('', 'Access', 'Oracle', 'Sybase',
-    'MySQL', 'SQLite');
+  C_nDBTypeItemIndex_DBF = 6;
+
+  CBB_DBTYPE_ITEMS: array[0..6] of String = ('', 'Access', 'Oracle', 'Sybase',
+    'MySQL', 'SQLite', 'DBF');
 
   C_nDBEngineTypeItemIndex_Auto = 0;
   C_nDBEngineTypeItemIndex_Ado  = 1;
@@ -150,9 +161,21 @@ const
   C_PageIndex_Sybase = 2;
   C_PageIndex_MySQL  = 3;
   C_PageIndex_SQLite = 4;
+  C_PageIndex_DBF = 5;
+
+  DBTYPE_PAGEINDEX_MAP: array[0..6] of Integer = (-1, C_PageIndex_Access,
+    C_PageIndex_Oracle, C_PageIndex_Sybase, C_PageIndex_MySQL, C_PageIndex_SQLite, C_PageIndex_DBF);
 
   C_nSybDBTypeItemIndex_ASE = 0;
   C_nSybDBTypeItemIndex_ASA = 1;
+
+procedure TF_DBOption.SetPageIndex(index: Integer);
+begin
+  if pgcOptions.Pages[index].TabVisible then
+    pgcOptions.ActivePageIndex := index
+  else
+    pgcOptions.ActivePageIndex := 0;
+end;
 
 procedure TF_DBOption.SetDBConfigList(value: TDBConfigList);
 var
@@ -198,7 +221,7 @@ begin
       dbtAccess, dbtAccess2007:
       begin
         cbbDBType.ItemIndex := C_nDBTypeItemIndex_Access;
-        pgcOptions.ActivePageIndex := C_PageIndex_Access;
+        SetPageIndex(C_PageIndex_Access);
         cbbUser.Text := DBconfig.AcsUser;
         edtPwd.Text := DBconfig.getEncodePwd(dbtAccess);// Base64Encode(AcsPwd);
         chkAcs2007.Checked := (DBconfig.DBType = dbtAccess2007);
@@ -206,14 +229,14 @@ begin
       dbtOracle:
       begin
         cbbDBType.ItemIndex := C_nDBTypeItemIndex_Oracle;
-        pgcOptions.ActivePageIndex := C_PageIndex_Oracle;
+        SetPageIndex(C_PageIndex_Oracle);
         cbbUser.Text := DBconfig.OraUser;
         edtPwd.Text := DBconfig.getEncodePwd(dbtOracle);
       end;
       dbtSybase:
       begin
         cbbDBType.ItemIndex := C_nDBTypeItemIndex_Sybase;
-        pgcOptions.ActivePageIndex := C_PageIndex_Sybase;
+        SetPageIndex(C_PageIndex_Sybase);
         cbbUser.Text := DBconfig.SybUser;
         edtPwd.Text := DBconfig.getEncodePwd(dbtSyBase);
 //        cbbSybaseType.ItemIndex := SybType;
@@ -221,19 +244,24 @@ begin
       dbtMySQL:
       begin
         cbbDBType.ItemIndex := C_nDBTypeItemIndex_MySQL;
-        pgcOptions.ActivePageIndex := C_PageIndex_MySQL;
+        SetPageIndex(C_PageIndex_MySQL);
         cbbUser.Text := DBconfig.mslUser;
         edtPwd.Text := DBconfig.getEncodePwd(dbtMySQL);
       end;
       dbtSqlite:
       begin
         cbbDBType.ItemIndex := C_nDBTypeItemIndex_SQLite;
-        pgcOptions.ActivePageIndex := C_PageIndex_SQLite;
+        SetPageIndex(C_PageIndex_SQLite);
+      end;
+      dbtDBF:
+      begin
+        cbbDBType.ItemIndex := C_nDBTypeItemIndex_DBF;
+        SetPageIndex(C_PageIndex_DBF);
       end;
       else
       begin
         cbbDBType.ItemIndex := 0;
-        pgcOptions.ActivePageIndex := 0;
+        SetPageIndex(0);
       end;
     end;
     DBEngineTypeToCbxIndex(DBconfig.DBEngineType);
@@ -257,6 +285,8 @@ begin
     edtMysqlCharset.Text := DBconfig.mslCharset;
 
     edtSqliteDBFile.Text := DBconfig.sltDB;
+
+    edtDBFSource.Text := DBconfig.dbfDB;
 
     edtRecentDBCount.Text := IntToStr(RecentDBCount);
   end;
@@ -335,7 +365,11 @@ begin
       C_nDBTypeItemIndex_SQLite:
       begin
         DBconfig.DBType := dbtSqlite;
-      end
+      end;
+      C_nDBTypeItemIndex_DBF:
+      begin
+        DBconfig.DBType := dbtDBF;
+      end;
     else
     end;
     CbxIndexToDBEngineType(DBconfig.DBEngineType);
@@ -359,6 +393,7 @@ begin
     DBconfig.mslCharset := edtMysqlCharset.Text;
 
     DBconfig.sltDB := edtSqliteDBFile.Text;
+    DBconfig.dbfDB := edtDBFSource.Text;
 
     DBconfig.IsLocalTns := chkIsLocalTNS.Checked;
     RecentDBCount := StrToInt(edtRecentDBCount.Text);
@@ -377,8 +412,12 @@ var
 begin
   inherited;
 
+  pgcOptions.Pages[C_PageIndex_DBF].TabVisible := False;
+
   cbbDBType.Items.Clear;
   for I := 0 to High(CBB_DBTYPE_ITEMS) do begin
+    if (DBTYPE_PAGEINDEX_MAP[i] >= 0)
+      and (pgcOptions.Pages[DBTYPE_PAGEINDEX_MAP[i]].TabVisible) then
     cbbDBType.Items.Add(CBB_DBTYPE_ITEMS[i]);
   end;
 end;
@@ -402,19 +441,13 @@ end;
 
 procedure TF_DBOption.btnChooseDBClick(Sender: TObject);
 var
-  sInitDir: string;
   sDBExt: string;
 begin
   with TOpenDialog.Create(Self) do
   try
     Filter := 'Access DB|*.mdb;*.accdb|*.*|*.*';
-    sInitDir := ExtractFileDir(edtAcsSource.Text);
-    if sInitDir = '' then
-      sInitDir := GlobalParams.LastDir;
-    if sInitDir = '' then
-      sInitDir := ExtractFilePath(Application.ExeName);
 
-    InitialDir := sInitDir;
+    InitialDir := AnalyzeDialogInitDir(edtAcsSource.Text);
     if Execute then
     begin
       edtAcsSource.Text := FileName;
@@ -431,20 +464,41 @@ begin
   end;
 end;
 
-procedure TF_DBOption.btnChooseSecClick(Sender: TObject);
+function TF_DBOption.AnalyzeDialogInitDir(mainPath: String): String;
 var
-  sInitDir: string;
+  sInitDir: String;
+begin
+  sInitDir := ExtractFileDir(mainPath);
+  if sInitDir = '' then
+    sInitDir := GlobalParams.LastDir;
+  if sInitDir = '' then
+    sInitDir := ExtractFilePath(Application.ExeName);
+  Result := sInitDir;
+end;
+
+procedure TF_DBOption.btnChooseDBFClick(Sender: TObject);
+begin
+  with TOpenDialog.Create(Self) do
+  try
+    Filter := '*.dbf|*.dbf|*.*|*.*';
+    InitialDir := AnalyzeDialogInitDir(edtDBFSource.Text);
+    if Execute then
+    begin
+      edtDBFSource.Text := ExtractFilePath(FileName);
+      GlobalParams.LastDir := FileName;
+    end;
+  finally
+    Free;
+  end;
+end;
+
+procedure TF_DBOption.btnChooseSecClick(Sender: TObject);
 begin
   with TOpenDialog.Create(Self) do
   try
     Filter := '*.mdw|*.mdw|*.*|*.*';
-    sInitDir := ExtractFileDir(edtAcsSec.Text);
-    if sInitDir = '' then
-      sInitDir := GlobalParams.LastDir;
-    if sInitDir = '' then
-      sInitDir := ExtractFilePath(Application.ExeName);
 
-    InitialDir := sInitDir;
+    InitialDir := AnalyzeDialogInitDir(edtAcsSec.Text);
     if Execute then
     begin
       edtAcsSec.Text := FileName;
@@ -458,7 +512,7 @@ end;
 procedure TF_DBOption.cbbDBTypeChange(Sender: TObject);
 begin
   if (cbbDBType.ItemIndex > 0) and (pgcOptions.PageCount >cbbDBType.ItemIndex-1) then
-    pgcOptions.ActivePageIndex := cbbDBType.ItemIndex-1;
+    SetPageIndex(cbbDBType.ItemIndex-1);
   pgcOptions.Enabled := cbbDBType.ItemIndex <> C_nDBTypeItemIndex_None;
   ChangeCurrnetUser;
 end;
@@ -536,7 +590,7 @@ begin
          dbtAccess, dbtAccess2007:
           begin
             cbbDBType.ItemIndex := C_nDBTypeItemIndex_Access;
-            pgcOptions.ActivePageIndex := C_PageIndex_Access;
+            SetPageIndex(C_PageIndex_Access);
             edtAcsSource.Text := AcsDataSource;
             edtAcsSec.Text := AcsSecuredDB;
             chkAcs2007.Checked := (DBType = dbtAccess2007);
@@ -544,7 +598,7 @@ begin
         dbtOracle:
           begin
             cbbDBType.ItemIndex := C_nDBTypeItemIndex_Oracle;
-            pgcOptions.ActivePageIndex := C_PageIndex_Oracle;
+            SetPageIndex(C_PageIndex_Oracle);
             cbbOraSID.Text := SID;
             chkIsLocalTNS.Checked := IsLocalTns;
             if not IsLocalTns then
@@ -564,7 +618,7 @@ begin
         dbtSybase:
         begin
           cbbDBType.ItemIndex := C_nDBTypeItemIndex_Sybase;
-          pgcOptions.ActivePageIndex := C_PageIndex_Sybase;
+          SetPageIndex(C_PageIndex_Sybase);
           edtSybServerName.Text := SybServerName;
           edtSybPort.Text := SybPort;
           cbbSybDataBase.Text := SybDatabaseName;
@@ -572,7 +626,7 @@ begin
         dbtMySql:
         begin
           cbbDBType.ItemIndex := C_nDBTypeItemIndex_MySQL;
-          pgcOptions.ActivePageIndex := C_PageIndex_MySQL;
+          SetPageIndex(C_PageIndex_MySQL);
           edtmslHost.Text := mslHost;
           edtmslDataBase.Text := mslDataBase;
           edtMysqlCharset.Text := mslCharset;
@@ -580,13 +634,19 @@ begin
         dbtSqlite:
         begin
           cbbDBType.ItemIndex := C_nDBTypeItemIndex_SQLite;
-          pgcOptions.ActivePageIndex := C_PageIndex_SQLite;
+          SetPageIndex(C_PageIndex_SQLite);
           edtSqliteDBFile.Text := sltDB;
+        end;
+        dbtDBF:
+        begin
+          cbbDBType.ItemIndex := C_nDBTypeItemIndex_DBF;
+          SetPageIndex(C_PageIndex_DBF);
+          edtDBFSource.Text := dbfDB;
         end;
         else
         begin
           cbbDBType.ItemIndex := 0;
-          pgcOptions.ActivePageIndex := 0;
+          SetPageIndex(0);
         end;
       end;
       DBEngineTypeToCbxIndex(DBEngineType);
@@ -605,6 +665,8 @@ end;
 
 procedure TF_DBOption.ChangeCurrnetUser;
 begin
+  cbbUser.Enabled := True;
+  edtPwd.Enabled := True;
   cbbUser.Items.Clear;
   with GlobalParams do
   case pgcOptions.ActivePageIndex of
@@ -628,8 +690,17 @@ begin
       cbbUser.Text := DBconfig.mslUser;
       edtPwd.Text := DBconfig.getEncodePwd(dbtMySQL);
     end;
+    C_PageIndex_SQLite:
+    begin
+
+    end;
+    C_PageIndex_DBF:
+    begin
+      cbbUser.Enabled := False;
+      edtPwd.Enabled := False;
+    end;
   end;
-end;    
+end;
 
 function TF_DBOption.Apply: Boolean;
 begin

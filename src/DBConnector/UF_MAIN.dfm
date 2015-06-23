@@ -205,16 +205,6 @@ object F_MAIN: TF_MAIN
                   end
                 end
               end
-              inherited pmAdjust: TPopupMenu
-                Left = 72
-              end
-              inherited actlstMain: TActionList
-                Left = 72
-                Top = 248
-              end
-              inherited pmMenu: TPopupMenu
-                Top = 248
-              end
             end
           end
         end

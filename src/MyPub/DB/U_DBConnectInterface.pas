@@ -233,6 +233,7 @@ const
   C_sDBCommand_SQL          = 'Sql';
   C_sDBCommand_Stop         = 'Stop';
   C_sDBCommand_Exit         = 'Exit';
+  C_sDBCommand_Trans        = 'Trans';
 
   C_sDBOptionSwitch_On  = 'on';
   C_sDBOptionSwitch_Off = 'off';

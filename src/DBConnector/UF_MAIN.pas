@@ -427,6 +427,10 @@ begin
     begin
       sDataSource := DBConfig.sltDB;
     end;
+    dbtDBF:
+    begin
+      sDataSource := DBConfig.dbfDB;
+    end;
     else
       sDataSource := DBConfig.DataSource;
     end;

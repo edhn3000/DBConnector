@@ -64,6 +64,9 @@ type
     // SQLite
     sltDB: String;
 
+    //
+    dbfDB: String;
+
     IsFixDB: Boolean;
     IsPasswordEncoded: Boolean;
 

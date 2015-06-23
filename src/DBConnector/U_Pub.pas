@@ -182,17 +182,19 @@ begin
     DBConnect._Release;
     DBConnect := nil;
   end;
-  DBConnect := TDBConnectManager.OpenDB(sDataSource, sUser, sPwd, dbt, dbet);
-  Result := DBConnect.Connected;
-  g_DBTreeFunc.SetDBConnect(Self.DBConnect);
-  if Result then
-  begin
-    DBConnect.MaxRecords := GlobalParams.MaxRecord;
-    SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_SUCC,
-      0, 0);
-  end
-  else
-  begin 
+  try
+    DBConnect := TDBConnectManager.OpenDB(sDataSource, sUser, sPwd, dbt, dbet);
+    Result := DBConnect.Connected;
+    g_DBTreeFunc.SetDBConnect(Self.DBConnect);
+    if Result then begin
+      DBConnect.MaxRecords := GlobalParams.MaxRecord;
+      SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_SUCC,
+        0, 0);
+    end else begin
+      SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_FAIL,
+        0, 0);
+    end;
+  except
     SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_FAIL,
       0, 0);
   end;

@@ -6,7 +6,6 @@ inherited F_DBOption: TF_DBOption
   ClientWidth = 530
   OldCreateOrder = True
   OnCreate = FormCreate
-  ExplicitTop = -164
   ExplicitWidth = 536
   ExplicitHeight = 541
   PixelsPerInch = 96
@@ -85,7 +84,7 @@ inherited F_DBOption: TF_DBOption
       Top = 201
       Width = 522
       Height = 202
-      ActivePage = tsSqlite
+      ActivePage = tsDBF
       Align = alClient
       MultiLine = True
       TabOrder = 1
@@ -382,6 +381,40 @@ inherited F_DBOption: TF_DBOption
           OnClick = btnChooseDBClick
         end
       end
+      object tsDBF: TTabSheet
+        Caption = 'DBF'
+        ImageIndex = 5
+        object Label11: TLabel
+          Left = 16
+          Top = 20
+          Width = 48
+          Height = 12
+          Caption = #25968#25454#28304#65306
+        end
+        object Label12: TLabel
+          Left = 16
+          Top = 48
+          Width = 114
+          Height = 12
+          Caption = #36873#25321'DBF'#25991#20214#25152#22312#36335#24452
+        end
+        object edtDBFSource: TEdit
+          Left = 76
+          Top = 20
+          Width = 350
+          Height = 20
+          TabOrder = 0
+        end
+        object btnChooseDBF: TButton
+          Left = 439
+          Top = 18
+          Width = 27
+          Height = 25
+          Caption = '...'
+          TabOrder = 1
+          OnClick = btnChooseDBFClick
+        end
+      end
     end
     object pnl1: TPanel
       Left = 4
@@ -435,12 +468,6 @@ inherited F_DBOption: TF_DBOption
           Style = csDropDownList
           TabOrder = 0
           OnChange = cbbDBTypeChange
-          Items.Strings = (
-            ''
-            'Access'
-            'Oracle'
-            'Sybase'
-            'MySQL')
         end
         object cbbEngineType: TComboBox
           Left = 81

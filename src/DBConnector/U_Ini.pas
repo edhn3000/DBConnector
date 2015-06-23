@@ -65,6 +65,7 @@ const
   C_sINI_SectionSybase = 'Sybase';
   C_sINI_SectionMySQL  = 'MySQL';
   C_sINI_SectionSQLite = 'SQLite';
+  C_sINI_SectionDBF = 'DBF';
 
   C_sINI_SectionDB = 'Database';
   C_sINI_DBTypeUnKnown = '0';
@@ -180,6 +181,8 @@ begin
 
     DBconfig.sltDB := ReadString(C_sINI_SectionSQLite, 'DB', '');
 
+    DBconfig.dbfDB := ReadString(C_sINI_SectionDBF, 'DB', '');
+
     Skin := ReadString('UI', 'Skin', '');
     ShowMenu := True;
     ShowBar := True;
@@ -269,6 +272,8 @@ begin
     WriteString(C_sINI_SectionMySQL, 'Pwd', Base64Encode(DBconfig.mslPwd));
 
     WriteString(C_sINI_SectionSQLite, 'DB', DBconfig.sltDB);
+
+    WriteString(C_sINI_SectionDBF, 'DB', DBconfig.dbfDB);
 
     WriteString('UI', 'Skin', Skin);
 //    WriteBool('UI', 'ShowMenu', ShowMenu);

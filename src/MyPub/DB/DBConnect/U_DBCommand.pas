@@ -84,6 +84,9 @@ type
       var nEffectRows: Integer):Boolean;virtual;          // 停止执行
     function DBCommand_Exit(sCommandContent: string; var sError: string;
       var nEffectRows: Integer):Boolean;virtual;          // 退出
+    function DBCommand_Trans(sCommandContent: string; var sError: string;
+      var nEffectRows: Integer):Boolean;virtual;          // 事务
+
 
   public
     constructor Create; virtual;
@@ -306,6 +309,7 @@ begin
   AddCmd(C_sDBCommand_DropNoError, 'drop命令时忽略错误 on/off值',DBCommand_DropNoError);
   AddCmd(C_sDBCommand_Conn, '连接数据库，形式dbtype user/pass@dbname',DBCommand_Connect); 
   AddCmd(C_sDBCommand_Exit,'断开连接',DBCommand_Exit);
+  AddCmd(C_sDBCommand_Trans,'事务',DBCommand_Trans);
   AddCmd(C_sDBCommand_Var, '定义变量，定义形式name=value。使用形式$name$',DBCommand_Variable);
   AddCmd(C_sDBCommand_SQL, '专用sql，如可更新blob的sql，详见手册',DBCommand_SQL);
 end;
@@ -463,6 +467,22 @@ function TDBCommandManager.DBCommand_Stop(sCommandContent: string; var sError: s
   var nEffectRows: Integer): Boolean;
 begin     
   FDBConnect.StopExec();
+  Result := True;
+end;
+
+function TDBCommandManager.DBCommand_Trans(sCommandContent: string;
+  var sError: string; var nEffectRows: Integer): Boolean;
+begin
+  if SameText(sCommandContent, 'on') then begin
+    FDBConnect.DBEngine.BeginTrans;
+    sError := '开启了事务';
+  end else if SameText(sCommandContent, 'off') then begin
+    FDBConnect.DBEngine.CommitTrans;
+    sError := '提交了事务';
+  end else begin
+    sError := 'unknown command:' + sCommandContent;
+  end;
+  nEffectRows := 0;
   Result := True;
 end;
 
@@ -670,8 +690,11 @@ begin
     begin
       FDBConnect.AddErrorLog(FDBCommandList.FindResult.Error);
       Result := TDBC_ERROR_EXECFAIL;
-    end else
+    end else begin
       Result := FDBCommandList.FindResult.EffectRows;
+      if FDBCommandList.FindResult.Error <> '' then
+        FDBConnect.AddInfoLog(FDBCommandList.FindResult.Error);
+    end;
   end
   else if nFind > 1 then begin             // 匹配失败但有相似命令
     FDBConnect.AddLog('命令不正确，是否' + FDBCommandList.FindResult.CmdStr);
