@@ -25,5 +25,6 @@
     <Transaction>2015/01/29 14:40:38.365.pas,E:\MyProgram\Delphi\MyPub\U_fStrUtil.pas=E:\MyProgram\Delphi\MyPub\common\U_fStrUtil.pas</Transaction>
     <Transaction>2015/01/29 14:40:43.101.pas,E:\MyProgram\Delphi\MyPub\U_PlanarList.pas=E:\MyProgram\Delphi\MyPub\common\U_PlanarList.pas</Transaction>
     <Transaction>2015/01/29 14:41:20.829.pas,E:\MyProgram\Delphi\MyPub\U_ExcelExportor.pas=E:\MyProgram\Delphi\MyPub\Office\U_ExcelExportor.pas</Transaction>
+    <Transaction>2015/06/26 15:08:10.669.pas,E:\MyProgram\Delphi\MyPub\Log\U_LogManager.pas=</Transaction>
   </Transactions>
 </BorlandProject>

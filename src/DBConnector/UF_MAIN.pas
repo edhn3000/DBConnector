@@ -16,7 +16,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, ToolWin, Menus, ActnList, ExtCtrls, 
+  Dialogs, StdCtrls, ComCtrls, ToolWin, Menus, ActnList, ExtCtrls,
   ADODB, ActnMan, ActnMenus, ActnCtrls, UFM_DBOperate, DBTables,
   XPStyleActnCtrls, U_Pub, DB, SynEdit, SynEditHighlighter,
   SynHighlighterSQL, DBCtrls, UF_Find, U_ThreadUtil, StdStyleActnCtrls,

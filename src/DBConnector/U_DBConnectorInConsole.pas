@@ -87,10 +87,10 @@ begin
       bEncryptlogin := True;
     end
     // 登录串处理
-    else if RegexUtil.MatchFirstStr(C_REGX_LOGIN, 0, ParamStr(i)) <> '' then
+    else if TRegexUtil.MatchFirstStr(C_REGX_LOGIN, 0, ParamStr(i)) <> '' then
     begin
       paramRequire := paramRequire or 2;
-      mr := RegexUtil.MatchFirst(C_REGX_LOGIN, 0, ParamStr(i));
+      mr := TRegexUtil.MatchFirst(C_REGX_LOGIN, 0, ParamStr(i));
       sDataSource := mr.Groups[3].MatchStr;
       nPos3 := Pos(C_sSEPARATOR_DATASOURCE, sDataSource);     // 可以没有
       if nPos3 = 0 then begin

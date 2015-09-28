@@ -11,7 +11,6 @@ uses
   U_Pub in 'U_Pub.pas',
   U_CommonFunc in '..\MyPub\common\U_CommonFunc.pas',
   UF_Find in '..\MyPub\UF_Find.pas' {F_Find},
-  U_LogManager in '..\MyPub\Log\U_LogManager.pas',
   U_UIUtil in '..\MyPub\UI\U_UIUtil.pas',
   U_FileUtil in '..\MyPub\IO\U_FileUtil.pas',
   U_ThreadUtil in '..\MyPub\U_ThreadUtil.pas',
@@ -73,7 +72,10 @@ uses
   U_DBEngineFactory in '..\MyPub\DB\DBEngine\U_DBEngineFactory.pas',
   U_SqlUtils in '..\MyPub\DB\SQL\U_SqlUtils.pas',
   U_SQLiteDBEngine in '..\MyPub\DB\DBEngine\U_SQLiteDBEngine.pas',
-  U_SQLiteDBConnect in '..\MyPub\DB\DBConnect\U_SQLiteDBConnect.pas';
+  U_SQLiteDBConnect in '..\MyPub\DB\DBConnect\U_SQLiteDBConnect.pas',
+  U_RegexUtil in '..\MyPub\regex\U_RegexUtil.pas',
+  U_Log in '..\MyPub\Log\U_Log.pas',
+  U_Log4d in '..\MyPub\Log\U_Log4d.pas';
 
 {$R *.res}
 //{$R ..\MyPub\XPStyle\XPStyle.res}     

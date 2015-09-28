@@ -982,7 +982,7 @@ var
   mr: TMatchResult;
 begin
   Result := False;
-  mr := RegexUtil.MatchFirst(sSub, 0, S);
+  mr := TRegexUtil.MatchFirst(sSub, 0, S);
   if mr <> nil then
   try
     Result := '' <> mr.MatchStr;
@@ -1018,7 +1018,7 @@ begin
   Result := TStringList.Create;
   mrList := TObjectList<TMatchResult>.Create;
   try
-    RegexUtil.MatchAll(sExpress, 0, S, mrList);
+    TRegexUtil.MatchAll(sExpress, 0, S, mrList);
     i := 0;
     while i < mrList.Count do
     begin

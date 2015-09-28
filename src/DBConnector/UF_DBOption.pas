@@ -93,6 +93,7 @@ type
     procedure edtmslDataBaseDropDown(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnChooseDBFClick(Sender: TObject);
+    procedure btnChooseSqliteDBClick(Sender: TObject);
   private
     { Private declarations }
     FDBConfigList: TDBConfigList;
@@ -138,16 +139,14 @@ uses
 
 
 const
-  C_nDBTypeItemIndex_None   = 0;
-  C_nDBTypeItemIndex_Access = 1;
-  C_nDBTypeItemIndex_Oracle = 2;
-  C_nDBTypeItemIndex_Sybase = 3;
-  C_nDBTypeItemIndex_MySQL  = 4;
-  C_nDBTypeItemIndex_SQLite = 5;
-  C_nDBTypeItemIndex_DBF = 6;
+  C_nDBTypeItemIndex_Access = 0;
+  C_nDBTypeItemIndex_Oracle = 1;
+  C_nDBTypeItemIndex_Sybase = 2;
+  C_nDBTypeItemIndex_MySQL  = 3;
+  C_nDBTypeItemIndex_SQLite = 4;
+  C_nDBTypeItemIndex_DBF = 5;
 
-  CBB_DBTYPE_ITEMS: array[0..6] of String = ('', 'Access', 'Oracle', 'Sybase',
-    'MySQL', 'SQLite', 'DBF');
+  CBB_DBTYPE_ITEMS: array[0..5] of String = ('Access', 'Oracle', 'Sybase', 'MySQL', 'SQLite', 'DBF');
 
   C_nDBEngineTypeItemIndex_Auto = 0;
   C_nDBEngineTypeItemIndex_Ado  = 1;
@@ -163,7 +162,7 @@ const
   C_PageIndex_SQLite = 4;
   C_PageIndex_DBF = 5;
 
-  DBTYPE_PAGEINDEX_MAP: array[0..6] of Integer = (-1, C_PageIndex_Access,
+  DBTYPE_PAGEINDEX_MAP: array[0..5] of Integer = (C_PageIndex_Access,
     C_PageIndex_Oracle, C_PageIndex_Sybase, C_PageIndex_MySQL, C_PageIndex_SQLite, C_PageIndex_DBF);
 
   C_nSybDBTypeItemIndex_ASE = 0;
@@ -412,13 +411,14 @@ var
 begin
   inherited;
 
-  pgcOptions.Pages[C_PageIndex_DBF].TabVisible := False;
+//  pgcOptions.Pages[C_PageIndex_DBF].TabVisible := False;
 
   cbbDBType.Items.Clear;
   for I := 0 to High(CBB_DBTYPE_ITEMS) do begin
-    if (DBTYPE_PAGEINDEX_MAP[i] >= 0)
-      and (pgcOptions.Pages[DBTYPE_PAGEINDEX_MAP[i]].TabVisible) then
-    cbbDBType.Items.Add(CBB_DBTYPE_ITEMS[i]);
+    if (DBTYPE_PAGEINDEX_MAP[i] < 0) then
+      cbbDBType.Items.Add('')
+    else if (pgcOptions.Pages[DBTYPE_PAGEINDEX_MAP[i]].TabVisible) then
+      cbbDBType.Items.Add(CBB_DBTYPE_ITEMS[i]);
   end;
 end;
 
@@ -509,18 +509,43 @@ begin
   end;
 end;
 
+procedure TF_DBOption.btnChooseSqliteDBClick(Sender: TObject);
+var
+  sDBExt: string;
+begin
+  with TOpenDialog.Create(Self) do
+  try
+    Filter := 'Sqlite DB|*.db|*.*|*.*';
+
+    InitialDir := AnalyzeDialogInitDir(edtAcsSource.Text);
+    if Execute then
+    begin
+      edtSqliteDBFile.Text := FileName;
+      GlobalParams.LastDir := FileName;
+    end;
+  finally
+    Free;
+  end;
+end;
+
 procedure TF_DBOption.cbbDBTypeChange(Sender: TObject);
 begin
   if (cbbDBType.ItemIndex > 0) and (pgcOptions.PageCount >cbbDBType.ItemIndex-1) then
     SetPageIndex(cbbDBType.ItemIndex-1);
-  pgcOptions.Enabled := cbbDBType.ItemIndex <> C_nDBTypeItemIndex_None;
+//  pgcOptions.Enabled := cbbDBType.ItemIndex <> C_nDBTypeItemIndex_None;
   ChangeCurrnetUser;
 end;
 
 procedure TF_DBOption.pgcOptionsChange(Sender: TObject);
+var
+  i: Integer;
 begin
-  if pgcOptions.ActivePageIndex + 1 < cbbDBType.Items.Count then
-  cbbDBType.ItemIndex := pgcOptions.ActivePageIndex + 1;
+  for i := 0 to High(DBTYPE_PAGEINDEX_MAP) do begin
+    if pgcOptions.ActivePageIndex = DBTYPE_PAGEINDEX_MAP[i] then begin
+      cbbDBType.ItemIndex := i;
+      Break;
+    end;
+  end;
   ChangeCurrnetUser;
 end;
 

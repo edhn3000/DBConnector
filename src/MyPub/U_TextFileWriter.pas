@@ -11,6 +11,9 @@ unit U_TextFileWriter;
 
 interface
 
+uses
+  Windows;
+
 type
   { TTextFileWriter 可读写文本，自适应读写模式，
     但只能有一种模式，读了就不能写，写了就不能读 }

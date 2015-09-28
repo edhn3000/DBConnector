@@ -5,8 +5,8 @@ uses
   Windows, SysUtils, Dialogs, Log4D, U_Log;
 
 type
-  { TSysLog4d }
-  TSysLog4d = class(TSysLog)
+  { TTextLog4d }
+  TTextLog4d = class(TTextFileLog)
   private
     FLogger: TLogLogger;
   public
@@ -23,26 +23,26 @@ implementation
 
 { TSysLog4d }
 
-procedure TSysLog4d.CloseLogger;
+procedure TTextLog4d.CloseLogger;
 begin
 
 //  Info('===========================结束记录=================================');
 end;
 
-constructor TSysLog4d.Create(owner: TObject; blockFile: Boolean);
+constructor TTextLog4d.Create(owner: TObject; blockFile: Boolean);
 begin
   FBlockFile := blockFile;
   FOwner := owner;
   FShowToViewer := True;
 end;
 
-destructor TSysLog4d.Destroy;
+destructor TTextLog4d.Destroy;
 begin
 
   inherited;
 end;
 
-procedure TSysLog4d.InitLogger(configFile: string);
+procedure TTextLog4d.InitLogger(configFile: string);
 var
   sDir, configFileName: String;
 begin
@@ -59,12 +59,12 @@ begin
 //  Info('===========================开始记录=================================');
 end;
 
-procedure TSysLog4d.Log(const AMsg: string; nLevel: Integer);
+procedure TTextLog4d.Log(const AMsg: string; nLevel: Integer);
 begin
   if (nLevel >= G_LogLevel) or (nLevel = C_LogLevel_ERROR) then
   begin
     if ShowToViewer then
-      LogToDebugViewer(AMsg, nLevel);
+      ConsoleLog.Log(AMsg, nLevel);
 
     case nLevel of
       C_LogLevel_DEBUG: begin

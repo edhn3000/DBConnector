@@ -30,10 +30,8 @@ type
 
   {TRegexUtil}
   TRegexUtil = class(TObject)
-  private
-
   public
-    function ConvertRegex(sPattern: string):string;
+    class function ConvertRegex(sPattern: string):string;
 {-------------------------------------------------------------------------------
   过程名:    MatchFirst  只匹配第一次Match，返回指定index的结果
   作者:      fengyq
@@ -44,8 +42,8 @@ type
              matchResult: TMatchResult
   返回值:    匹配成功返回TMatchResult对象（需外部Free），否则返回nil
 -------------------------------------------------------------------------------}
-    function MatchFirst(sPattern: String; index: Integer; sContent: String): TMatchResult;
-    function MatchFirstStr(sPattern: String; index: Integer; sContent: String): String;
+    class function MatchFirst(sPattern: String; index: Integer; sContent: String): TMatchResult;
+    class function MatchFirstStr(sPattern: String; index: Integer; sContent: String): String;
 
 {-------------------------------------------------------------------------------
   过程名:    MatchAll 匹配所有Match，每次匹配取指定index的结果
@@ -54,30 +52,15 @@ type
   参数:      sPattern, sContent: String; resultList: TObjectList
   返回值:    至少一个匹配成功返回True，否则False
 -------------------------------------------------------------------------------}
-    function MatchAll(sPattern:string; index: Integer; sContent: String;
+    class function MatchAll(sPattern:string; index: Integer; sContent: String;
       resultList: TObjectList<TMatchResult>): Boolean;
   end;
 
-  function RegexUtil: TRegexUtil;
-
 implementation
-
-var
-  mRegexUtil: TRegexUtil;
-
-function RegexUtil: TRegexUtil;
-begin
-  if mRegexUtil = nil then
-  begin
-    mRegexUtil := TRegexUtil.Create;
-  end;
-  Result := mRegexUtil;
-end;
-
 
 { TRegexUtil }
 
-function TRegexUtil.ConvertRegex(sPattern: string): string;
+class function TRegexUtil.ConvertRegex(sPattern: string): string;
 var
   mrList: TObjectList<TMatchResult>;
   mr: TMatchResult;
@@ -99,7 +82,7 @@ begin
   end;
 end;
 
-function TRegexUtil.MatchFirst(sPattern: String; index: Integer;
+class function TRegexUtil.MatchFirst(sPattern: String; index: Integer;
   sContent: String): TMatchResult;
 var
   regex: TPerlRegEx;
@@ -135,7 +118,7 @@ begin
   end;
 end;
 
-function TRegexUtil.MatchFirstStr(sPattern: String; index: Integer;
+class function TRegexUtil.MatchFirstStr(sPattern: String; index: Integer;
   sContent: String): String;
 var
   mr: TMatchResult;
@@ -150,7 +133,7 @@ begin
   end;
 end;
 
-function TRegexUtil.MatchAll(sPattern: String; index: Integer; sContent: String;
+class function TRegexUtil.MatchAll(sPattern: String; index: Integer; sContent: String;
   resultList: TObjectList<TMatchResult>): Boolean;
 var
   regex: TPerlRegEx;
@@ -200,11 +183,5 @@ begin
   FGroups.Free;
   inherited;
 end;
-
-initialization
-
-finalization
-  if Assigned(mRegexUtil) then
-    FreeAndNil(mRegexUtil);
 
 end.

@@ -19,7 +19,7 @@ uses
 type
   TTextFormat=(tfAnsi,tfUnicode,tfUnicodeBigEndian,tfUtf8);
 const
-  TextFormatFlag:array[tfAnsi..tfUtf8] of word=($0000,$FFFE,$FEFF,$EFBB);　
+  TextFormatFlag:array[tfAnsi..tfUtf8] of word=($0000,$FFFE,$FEFF,$EFBB);
 
 type
 { TFileFullInfo }
@@ -40,12 +40,22 @@ type
 
   { TFileItem }
   TFileItem = class
+  private
+    FSubFileItems: TStrings;
+  public
     FileName: String;
     CreateTime: TDateTime;
     ModifyTime: TDateTime;
     AccessTime: TDateTime;
 
     IsFile: Boolean;
+
+    property SubFileItems: TStrings read FSubFileItems;
+
+    constructor Create;
+    destructor Destroy;override;
+
+    function HasSubFile(): Boolean;
   end;
 
   { TFindFileCallBack }
@@ -55,6 +65,7 @@ type
   TFileList = class
   private
     FFileList: TObjectList<TFileItem>;
+    FFileMap: TDictionary<String,TFileItem>;
     FSearchMode: Integer;
     FSearchExts: TDictionary<String,String>;
     FSearchSubDir: Boolean;
@@ -106,7 +117,8 @@ type
     procedure Clear();
 
     function GetFileName(index: Integer): string;
-    function GetFileItem(index: Integer): TFileItem;
+    function GetFileItem(index: Integer): TFileItem; overload;
+    function GetFileItem(fileName: String): TFileItem; overload;
   end;
 
   { TFileUtil }
@@ -760,14 +772,14 @@ end;
 class function TFileUtil.ParseFileEncoding2(const FileName: string): TEncoding;
 var
   buff: TBytes;
-  readCount: Integer;
+//  readCount: Integer;
   encoding: TEncoding;
   stream: TFileStream;
 begin
   stream := TFileStream.Create(FileName,fmOpenRead or fmShareDenyNone);
   try
     SetLength(buff, 1024);
-    readCount := stream.Read(buff, Length(buff));
+    stream.Read(buff, Length(buff));
     encoding := nil;
     TEncoding.GetBufferEncoding(buff, encoding);
     Result := encoding;
@@ -780,6 +792,7 @@ end;
 constructor TFileList.Create;
 begin
   FFileList := TObjectList<TFileItem>.Create();
+  FFileMap := TDictionary<String,TFileItem>.Create;
   FFileList.OwnsObjects := True;
   FSearchSubDir := True;     // 是否查找子文件夹
   FContainSelf := False;  // 是否包含自身
@@ -791,6 +804,7 @@ end;
 destructor TFileList.Destroy;
 begin
   FreeAndNil(FFileList);
+  FreeAndNil(FFileMap);
   FreeAndNil(FExcludeFiles);
 
   FreeAndNil(FSearchExts);
@@ -799,7 +813,7 @@ end;
 
 function TFileList.AddFile(sFileName: String; SrchRec: TSearchRec): Integer;
 var
-  fileItem: TFileItem;
+  fileItem, parentFileItem: TFileItem;
 begin
   fileItem := TFileItem.Create;
   fileItem.FileName := sFileName;
@@ -813,6 +827,15 @@ begin
     fileItem.ModifyTime := CovFileDate(SrchRec.FindData.ftLastWriteTime);
     fileItem.AccessTime := CovFileDate(SrchRec.FindData.ftLastAccessTime);
   end;
+
+  parentFileItem := GetFileItem(ExtractFilePath(sFileName));
+  if Assigned(parentFileItem) then begin
+    parentFileItem.SubFileItems.AddObject(fileItem.FileName, fileItem);
+  end;
+
+  if not FFileMap.ContainsKey(fileItem.FileName) then
+    FFileMap.Add(fileItem.FileName, fileItem);
+
   Result := FFileList.Add(fileItem);
 end;
 
@@ -878,6 +901,7 @@ var
 begin
   FbSearching := True;
   FFileList.Clear;
+  FFileMap.Clear;
 
   FSearchExts.Clear;
   strs := TStringList.Create;
@@ -899,6 +923,7 @@ end;
 procedure TFileList.Clear;
 begin
   FFileList.Clear;
+  FFileMap.Clear;
 end;
 
 function TFileList.Count: Integer;
@@ -988,9 +1013,42 @@ begin
   Result := TFileItem(FFileList[index]);
 end;
 
+function TFileList.GetFileItem(fileName: String): TFileItem;
+begin
+  Result := nil;
+  if FFileMap.ContainsKey(fileName) then
+    Result := FFileMap.Items[fileName];
+end;
+
 function TFileList.GetFileName(index: Integer): string;
 begin
   Result := FFileList[index].FileName;
+end;
+
+{ TFileItem }
+
+constructor TFileItem.Create;
+begin
+  FSubFileItems := TStringList.Create;
+end;
+
+destructor TFileItem.Destroy;
+begin
+  FSubFileItems.Free;
+  inherited;
+end;
+
+function TFileItem.HasSubFile: Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := 0 to FSubFileItems.Count - 1 do begin
+    if TFileItem(FSubFileItems.Objects[i]).IsFile then begin
+      Result := True;
+      Break;
+    end;
+  end;
 end;
 
 end.

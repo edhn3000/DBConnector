@@ -12,8 +12,27 @@ const
   C_ARY_LOG_LEVEL : array[1..4] of string = ('调试', '信息', '警告', '错误');
 
 type
-  { TSysLog }
-  TSysLog = class
+  { TAbstractLog }
+  TAbstractLog = class
+  public
+    procedure Log(const AMsg: string; nLevel: Integer); virtual; abstract;
+    procedure Debug(AMsg: string);
+    procedure Info(AMsg: string);
+    procedure Warn(AMsg: string);
+    procedure Error(AMsg: string; e: Exception = nil);
+
+    class function GetLogLevelCN(nLevel: Integer): String;
+  end;
+
+  { TConsoleLog }
+  TConsoleLog = class(TAbstractLog)
+  public
+    procedure Log(const AMsg: string; nLevel: Integer); override;
+
+  end;
+
+  { TTextFileLog }
+  TTextFileLog = class(TAbstractLog)
   private
     FLogfile: TextFile;
     FLogOpened: Boolean;
@@ -29,7 +48,6 @@ type
     procedure OpenLogFile();
     procedure CloseLogFile();
     procedure NewLogFile(const sFilename: string);
-    procedure LogToDebugViewer(const AMsg: string; nLevel: Integer); virtual;
   public
     property RelativePath: String read FRelativePath write FRelativePath;
     property BlockFile: Boolean read FBlockFile write FBlockFile;
@@ -40,21 +58,16 @@ type
     constructor Create(owner: TObject = nil; blockFile: Boolean = True);
     destructor Destroy; override;
 
-    class function GetLogLevelCN(nLevel: Integer): String;
-
     procedure InitLogger(fileName: string); virtual;
     procedure CloseLogger; virtual;
-    procedure Log(const AMsg: string; nLevel: Integer); virtual;
-    procedure Debug(AMsg: string);
-    procedure Info(AMsg: string);
-    procedure Warn(AMsg: string);
-    procedure Error(AMsg: string; e: Exception = nil);
+    procedure Log(const AMsg: string; nLevel: Integer); override;
   end;
 
 var
   // 日志级别，加载配置前默认为Debug，加载配置后默认为INFO
   G_LogLevel: Integer = C_LogLevel_DEBUG;
-  SysLog: TSysLog;
+  SysLog: TTextFileLog;
+  ConsoleLog: TConsoleLog;
 
 implementation
 
@@ -88,9 +101,46 @@ begin
   Result := -1;
 end;
 
-{ TSysLog }
+{ TAbstractLog }
 
-function TSysLog.getModulePath: String;
+procedure TAbstractLog.Debug(AMsg: string);
+begin
+  Log(AMsg, C_LogLevel_DEBUG);
+end;
+
+procedure TAbstractLog.Info(AMsg: string);
+begin
+  Log(AMsg, C_LogLevel_INFO);
+end;
+
+procedure TAbstractLog.Warn(AMsg: string);
+begin
+  Log(AMsg, C_LogLevel_WARN);
+end;
+
+procedure TAbstractLog.Error(AMsg: string; e: Exception);
+begin
+  if Assigned(e) then begin
+    Log(Format(AMsg + ' Exception:Class=%s, Message=%s.'
+      ,[e.ClassName,e.ToString]), C_LogLevel_ERROR);
+  end else begin
+    Log(AMsg, C_LogLevel_ERROR);
+  end;
+end;
+
+class function TAbstractLog.GetLogLevelCN(nLevel: Integer): String;
+begin
+  if (nLevel >=Low(C_ARY_LOG_LEVEL))
+    and (nLevel <= High(C_ARY_LOG_LEVEL)) then begin
+    Result := C_ARY_LOG_LEVEL[nLevel];
+  end else begin
+    Result := 'UnknownLevel';
+  end;
+end;
+
+{ TTextFileLog }
+
+function TTextFileLog.getModulePath: String;
 var
   DllPath: array[0..255] of WideChar;
 begin
@@ -102,7 +152,7 @@ begin
   Result := m_dllPath;
 end;
 
-procedure TSysLog.CloseLogger;
+procedure TTextFileLog.CloseLogger;
 begin
   if FBlockFile then begin
     CloseLogFile;
@@ -110,7 +160,7 @@ begin
 //  Info('===========================结束记录=================================');
 end;
 
-constructor TSysLog.Create(owner: TObject; blockFile: Boolean);
+constructor TTextFileLog.Create(owner: TObject; blockFile: Boolean);
 begin
   FOwner := owner;
   FBlockFile := blockFile;
@@ -119,7 +169,13 @@ begin
   FMaxLogCount := 7;
 end;
 
-procedure TSysLog.OpenLogFile;
+destructor TTextFileLog.Destroy;
+begin
+  CloseLogger;
+  inherited;
+end;
+
+procedure TTextFileLog.OpenLogFile;
 begin
   if not FLogOpened then begin
     AssignFile(FLogfile,FLogFileName);
@@ -128,7 +184,7 @@ begin
   end;
 end;
 
-procedure TSysLog.CloseLogFile;
+procedure TTextFileLog.CloseLogFile;
 begin
   if FLogOpened then begin
     Flush(FLogfile);
@@ -137,11 +193,11 @@ begin
   end;
 end;
 
-procedure TSysLog.NewLogFile(const sFilename: string);
+procedure TTextFileLog.NewLogFile(const sFilename: string);
 var
   sNewFileName, sOldLogFile: string;
   fileDate: TDateTime;
-  i: Integer;
+//  i: Integer;
 begin
   if FileExists(sFilename) then
   begin
@@ -173,7 +229,7 @@ begin
     FileClose(FileCreate(sFilename));
 end;
 
-procedure TSysLog.InitLogger(fileName: string);
+procedure TTextFileLog.InitLogger(fileName: string);
 var
   sDir: String;
 begin
@@ -195,14 +251,14 @@ begin
 //  Info('===========================开始记录=================================');
 end;
 
-procedure TSysLog.Log(const AMsg: string; nLevel: Integer);
+procedure TTextFileLog.Log(const AMsg: string; nLevel: Integer);
 var
   className: String;
 begin
   if (nLevel >= G_LogLevel) or (nLevel = C_LogLevel_ERROR) then
   begin
     if ShowToViewer then
-      LogToDebugViewer(AMsg, nLevel);
+      ConsoleLog.Log(AMsg, nLevel);
 
     if not FBlockFile then begin
       OpenLogFile;
@@ -213,7 +269,7 @@ begin
 
       Writeln(FLogfile, Format('%s %s[%s] [ThreadId=%d] %s',[
         FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz ',Now), className,
-        TSysLog.GetLogLevelCN(nLevel), GetCurrentThreadId, AMsg]));
+        TTextFileLog.GetLogLevelCN(nLevel), GetCurrentThreadId, AMsg]));
       Flush(FLogfile);
     finally
       if not FBlockFile then begin
@@ -223,58 +279,20 @@ begin
   end;
 end;
 
-procedure TSysLog.LogToDebugViewer(const AMsg: string; nLevel: Integer);
-begin
-  Windows.OutputDebugString(PWideChar(Format('校对[%s]:%s',
-    [GetLogLevelCN(nLevel), AMsg])));
-end;
+{ TConsoleLog }
 
-destructor TSysLog.Destroy;
+procedure TConsoleLog.Log(const AMsg: string; nLevel: Integer);
 begin
-  CloseLogger;
-  inherited;
-end;
-
-procedure TSysLog.Debug(AMsg: string);
-begin
-  Log(AMsg, C_LogLevel_DEBUG);
-end;
-
-procedure TSysLog.Info(AMsg: string);
-begin
-  Log(AMsg, C_LogLevel_INFO);
-end;
-
-procedure TSysLog.Warn(AMsg: string);
-begin
-  Log(AMsg, C_LogLevel_WARN);
-end;
-
-procedure TSysLog.Error(AMsg: string; e: Exception);
-begin
-  if Assigned(e) then begin
-    Log(Format(AMsg + ' Exception:Class=%s, Message=%s.'
-      ,[e.ClassName,e.ToString]), C_LogLevel_ERROR);
-  end else begin
-    Log(AMsg, C_LogLevel_ERROR);
-  end;
-end;
-
-class function TSysLog.GetLogLevelCN(nLevel: Integer): String;
-begin
-  if (nLevel >=Low(C_ARY_LOG_LEVEL))
-    and (nLevel <= High(C_ARY_LOG_LEVEL)) then begin
-    Result := C_ARY_LOG_LEVEL[nLevel];
-  end else begin
-    Result := 'UnknownLevel';
-  end;
+  Windows.OutputDebugString(PWideChar(Format('Console[%s][ThreadId=%d]:%s',
+    [GetLogLevelCN(nLevel), GetCurrentThreadId, AMsg])));
 end;
 
 initialization
+  ConsoleLog := TConsoleLog.Create;
 
 finalization
-  if Assigned(SysLog) then
-    FreeAndNil(SysLog);
+  if Assigned(ConsoleLog) then
+    FreeAndNil(ConsoleLog);
 
 end.
 

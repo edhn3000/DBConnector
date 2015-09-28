@@ -55,13 +55,13 @@ type
 
     function AddField(sKey, sValue: string): TJSON;
     function AddFieldObject(sKey: string; dson: TJSON): TJSON;
-    function ToString(): string;
+    function ToString(): string;override;
   end;
 
 implementation
 
 uses
-  SysUtils;
+  SysUtils, IniFiles;
 
 { TDSON }  
 
@@ -143,7 +143,7 @@ end;
 
 constructor TJSON.Create;
 begin
-  FList := TStringList.Create;
+  FList := THashedStringList.Create;
 end;
 
 destructor TJSON.Destroy;

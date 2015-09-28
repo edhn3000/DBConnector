@@ -378,7 +378,7 @@ inherited F_DBOption: TF_DBOption
           Height = 25
           Caption = '...'
           TabOrder = 1
-          OnClick = btnChooseDBClick
+          OnClick = btnChooseSqliteDBClick
         end
       end
       object tsDBF: TTabSheet

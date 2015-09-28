@@ -68,7 +68,6 @@ uses
 
 //  m_DBList: TDBConfigList;
 
-
 function GetAppRootPath: string;
 begin
   Result := ExtractFilePath(Application.ExeName);
@@ -90,8 +89,7 @@ var
 begin   
   dbcfg := TDBConfig.Create;
 
-  with GLobalParams do
-  begin
+  with GLobalParams do begin
     dbcfg.DBType := DBconfig.DBType;
     dbcfg.DBEngineType := DBconfig.DBEngineType;
 
@@ -105,8 +103,7 @@ begin
     dbcfg.UserName);
   if dbcfgFind = nil then
     g_Global.DBConfigList.Insert(0, dbcfg)
-  else
-  begin
+  else begin
     dbcfgFind.Assign(dbcfg);
     dbcfg.Free;
     
@@ -159,13 +156,10 @@ end;
 procedure TGlobal.RegisterFrame(frame: TFM_DBOperate);
 begin
   RegisterFrames.Add(frame);
-  if (DBConnect <> nil) and (DBConnect.Connected) then
-  begin
+  if (DBConnect <> nil) and (DBConnect.Connected) then begin
     frame.ReCreateDBConnect(DBConnect.DBEngine.GetDBType);
     frame.ShareDBConnect(DBConnect);
-  end
-  else
-  begin
+  end else begin
     frame.ReCreateDBConnect(dbtUnKnown);
   end;
 end;  
@@ -178,6 +172,7 @@ end;
 function TGlobal.OpenDB(sDataSource, sUser, sPwd: string; dbt: TDBType;
   dbet: TDBEngineType): Boolean;
 begin
+  Result := False;
   if Assigned(DBConnect) then begin
     DBConnect._Release;
     DBConnect := nil;
@@ -185,18 +180,15 @@ begin
   try
     DBConnect := TDBConnectManager.OpenDB(sDataSource, sUser, sPwd, dbt, dbet);
     Result := DBConnect.Connected;
-    g_DBTreeFunc.SetDBConnect(Self.DBConnect);
+    g_DBTreeFunc.SetDBConnect(DBConnect);
     if Result then begin
       DBConnect.MaxRecords := GlobalParams.MaxRecord;
-      SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_SUCC,
-        0, 0);
+      SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_SUCC, 0, 0);
     end else begin
-      SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_FAIL,
-        0, 0);
+      SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_FAIL, 0, 0);
     end;
   except
-    SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_FAIL,
-      0, 0);
+    SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_ONCONNECT_FAIL, 0, 0);
   end;
 end;
 
@@ -209,26 +201,21 @@ end;
 
 procedure TGlobal.ShareDB(DB: IDBConnect);
 begin
-  if DBConnect = nil then
-  begin
+  if DBConnect = nil then begin
     DBConnect := TDBConnectManager.CreateDBConnect(DB.DBEngine.GetDBType);
 
     DBConnect.ShareEngine(DB.DBEngine, True);
     // 由于DBConnect对象有改动，所以要刷新到所有frame
     ReRegisterAllFrame(DB);
-  end
-  else if (DBConnect.DBEngine.GetDBType <> DB.DBEngine.GetDBType) then
-  begin
+  end else if (DBConnect.DBEngine.GetDBType <> DB.DBEngine.GetDBType) then begin
     DBConnect._Release;
     DBConnect := nil;
     DBConnect := TDBConnectManager.CreateDBConnect(DB.DBEngine.GetDBType);
 
     DBConnect.ShareEngine(DB.DBEngine, True);
     ReRegisterAllFrame(DB);
-  end
+  end else if (DBConnect.Connected <> DB.Connected) then begin
   // 一般用于断连
-  else if (DBConnect.Connected <> DB.Connected) then
-  begin
     DBConnect.ShareEngine(DB.DBEngine, True);
     ReRegisterAllFrame(DB);
   end;
@@ -237,32 +224,27 @@ end;
 
 procedure TGlobal.RefreshMainUIOnConected;
 begin
-  SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_MAIN_REFRESHONCONNECT,
-    0, 0);
+  SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_MAIN_REFRESHONCONNECT, 0, 0);
 end;   
 
 procedure TGlobal.RefreshMainUIOnDisConected;
 begin
-  SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_MAIN_REFRESHONDISCONNECT,
-    0, 0);
+  SendMessage(Application.MainForm.Handle, WMUSER_DBCONNECTOR_MAIN_REFRESHONDISCONNECT, 0, 0);
 end;
 
 procedure TGlobal.ReRegisterAllFrame(exceptObj: IDBConnect);
 var
   i: Integer;
 begin
-  for i := 0 to RegisterFrames.Count - 1 do
-  begin
+  for i := 0 to RegisterFrames.Count - 1 do begin
     if exceptObj = TFM_DBOperate(RegisterFrames.Items[i]).DBConnect then
       Continue;
     
-    if (DBConnect <> nil) and (DBConnect.Connected) then
-    begin
+    if (DBConnect <> nil) and (DBConnect.Connected) then begin
       TFM_DBOperate(RegisterFrames.Items[i]).ReCreateDBConnect(
         DBConnect.DBEngine.GetDBType);
       TFM_DBOperate(RegisterFrames.Items[i]).ShareDBConnect(DBConnect);
-    end
-    else
+    end else
       TFM_DBOperate(RegisterFrames.Items[i]).ReCreateDBConnect(dbtUnKnown);
   end;  
 end;
