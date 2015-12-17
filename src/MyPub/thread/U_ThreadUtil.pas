@@ -129,40 +129,45 @@ type
   TProcOfObj = procedure of object;
   TProc = procedure;
 
-{ TCustomThreadProxy 线程代理类}
-  TCustomThreadProxy = class
+{ TCustomThreadTask 线程的任务，可直接使用或继承此类}
+  TCustomThreadTask = class
   private
     FProc: TProc;
     FProcOfObj: TProcOfObj;
-    FEvent: TNotifyEvent;
     FOwner: TThread;
-    FHasRun: Boolean;
+  protected
+    FRunning: Boolean;
+    FRuned: Boolean;
   public
+    property Proc: TProc read FProc write FProc;
+    property ProcOfObj: TProcOfObj read FProcOfObj write FProcOfObj;
+
+    constructor Create(); overload;
     constructor Create(AProc: TProc);overload;
-    constructor Create(AProcOfObj: TProcOfObj);overload; 
-    constructor Create(AEvent: TNotifyEvent);overload;
+    constructor Create(AProcOfObj: TProcOfObj);overload;
     destructor  Destroy;override;
 
     function HasRun: Boolean;
-    procedure RunProc;
+    // 执行线程
+    procedure RunProc; virtual;
   end;
 
 { TCustomThread }
   TCustomThread = class(TThread)
-  private                           
+  private
     FLastError: string;
-    FProxy: TCustomThreadProxy;
-    FDoBefore: TCustomThreadProxy;
-    FDoAfter: TCustomThreadProxy;
-    FDoOnAbort: TCustomThreadProxy;
+    FTask: TCustomThreadTask;
+    FDoBefore: TCustomThreadTask;
+    FDoAfter: TCustomThreadTask;
+    FDoOnAbort: TCustomThreadTask;
     FExecuting: Boolean;
 
     function GetExecuting: Boolean;
 
-    procedure SetThreadProxy(value: TCustomThreadProxy);
-    procedure SetDoBefore(value: TCustomThreadProxy);
-    procedure SetDoAfter(value: TCustomThreadProxy);
-    procedure SetOnAbort(value: TCustomThreadProxy);
+    procedure SetThreadProxy(value: TCustomThreadTask);
+    procedure SetDoBefore(value: TCustomThreadTask);
+    procedure SetDoAfter(value: TCustomThreadTask);
+    procedure SetOnAbort(value: TCustomThreadTask);
 
   protected
     procedure RunBeforeExecute;virtual;
@@ -170,19 +175,19 @@ type
     procedure Execute;override;
     procedure RunAfterExecute;virtual;
   public
-    property Executing: Boolean read GetExecuting;       
-    property ThreadProxy: TCustomThreadProxy read FProxy write SetThreadProxy;
+    property Executing: Boolean read GetExecuting;
+    property ThreadProxy: TCustomThreadTask read FTask write SetThreadProxy;
     // 进入Excute后在执行实际的方法之前
-    property DoBeforeExecute: TCustomThreadProxy read FDoBefore write SetDoBefore;
+    property DoBeforeExecute: TCustomThreadTask read FDoBefore write SetDoBefore;
     // Excute执行的结尾时调用,会在DoTerminate之前
-    property DoAfterExecute: TCustomThreadProxy read FDoAfter write SetDoAfter;
-    property DoOnAbort: TCustomThreadProxy read FDoOnAbort write SetOnAbort;
+    property DoAfterExecute: TCustomThreadTask read FDoAfter write SetDoAfter;
+    property DoOnAbort: TCustomThreadTask read FDoOnAbort write SetOnAbort;
   public
-    constructor Create(ACustomThreadProxy: TCustomThreadProxy;
+    constructor Create(ACustomThreadProxy: TCustomThreadTask;
       FreeOnTerminate: Boolean = True);
     destructor  Destroy;override;
-                                      
-    procedure Resume;   
+
+    procedure Resume;
     procedure Suspend;
     procedure Abort(WaitTimeOut: Integer=0);
   end;
@@ -224,14 +229,14 @@ begin
     Result := wrSignaled
   else
     Result := wrTimeout;
-end;  
+end;
 
 function KillThreadByHandle(ThreadHandle: THandle): Boolean;
 var
   exitcode: Cardinal;
-begin 
+begin
   GetExitCodeThread(ThreadHandle, exitcode);
-  Result := TerminateThread(ThreadHandle, exitcode); 
+  Result := TerminateThread(ThreadHandle, exitcode);
 end;
 
 function WaitResultToStr(wr: TWaitResult): string;
@@ -248,13 +253,13 @@ begin
       Result := GetEnumName(ti, i);
       Break;
     end;
-end;     
+end;
 
 { TLock }
 
 constructor TMyLock.Create;
 begin
-//  FLock := False;        
+//  FLock := False;
   InitializeCriticalSection(FLock);
 end;
 
@@ -282,14 +287,14 @@ begin
 //  else
 //    Result := True;
 //
-//  FLock := True;   
+//  FLock := True;
   EnterCriticalSection(FLock);
   Result := True;
 end;
 
 procedure TMyLock.UnLock;
 begin
-//  FLock := False;   
+//  FLock := False;
   LeaveCriticalSection(FLock);
 end;
 
@@ -301,7 +306,7 @@ begin
 end;
 
 destructor TLockObjectList.Destroy;
-begin   
+begin
   DeleteCriticalSection(FLock);
   inherited;
 end;
@@ -309,12 +314,12 @@ end;
 procedure TLockObjectList.Lock;
 begin
   EnterCriticalSection(FLock);
-end;   
+end;
 
 procedure TLockObjectList.UnLock;
 begin
   LeaveCriticalSection(FLock);
-end;  
+end;
 
 function TLockObjectList.LockExtractFirst: TObject;
 begin
@@ -330,7 +335,7 @@ begin
 end;
 
 function TLockObjectList.LockRemove(AObject: TObject): Integer;
-begin     
+begin
   Lock;
   try
     Result := inherited Remove(AObject);
@@ -353,20 +358,20 @@ begin
 end;
 
 procedure TLockStringList.Lock;
-begin  
+begin
   EnterCriticalSection(FLock);
 end;
 
 procedure TLockStringList.UnLock;
-begin           
+begin
   LeaveCriticalSection(FLock);
-end;  
+end;
 
 
 { TLockHashedStringList }
 
 constructor TLockHashedStringList.Create;
-begin   
+begin
   InitializeCriticalSection(FLock);
 end;
 
@@ -386,26 +391,26 @@ begin
   LeaveCriticalSection(FLock);
 end;
 
-{ TCustomThreadStart }
+{ TCustomThreadTask }
 
-constructor TCustomThreadProxy.Create(AProc: TProc);
+constructor TCustomThreadTask.Create;
+begin
+  FRuned := False;
+end;
+
+constructor TCustomThreadTask.Create(AProc: TProc);
 begin
   FProc := AProc;
-  FHasRun := False;
+  FRuned := False;
 end;
 
-constructor TCustomThreadProxy.Create(AProcOfObj: TProcOfObj);
+constructor TCustomThreadTask.Create(AProcOfObj: TProcOfObj);
 begin
-  FProcOfObj := AProcOfObj; 
-  FHasRun := False;
+  FProcOfObj := AProcOfObj;
+  FRuned := False;
 end;
 
-constructor TCustomThreadProxy.Create(AEvent: TNotifyEvent);
-begin
-  FEvent := AEvent;
-end;
-
-destructor TCustomThreadProxy.Destroy;
+destructor TCustomThreadTask.Destroy;
 begin
 
   inherited;
@@ -428,7 +433,7 @@ begin
   end;
 end;
 
-constructor TCustomThread.Create(ACustomThreadProxy: TCustomThreadProxy;
+constructor TCustomThread.Create(ACustomThreadProxy: TCustomThreadTask;
   FreeOnTerminate: Boolean);
 begin
   inherited Create(True);
@@ -442,9 +447,9 @@ begin
   if Executing then
   begin
     Abort();
-  end;  
-  if Assigned(FProxy) then
-    FreeAndNil(FProxy);
+  end;
+  if Assigned(FTask) then
+    FreeAndNil(FTask);
   if Assigned(FDoBefore) then
     FreeAndNil(FDoBefore);
   if Assigned(FDoAfter) then
@@ -478,7 +483,7 @@ begin
   finally
     FExecuting := False;
   end;
-end;   
+end;
 
 procedure TCustomThread.RunBeforeExecute;
 begin
@@ -504,15 +509,15 @@ begin
   Result := FExecuting and (not Suspended);
 end;
 
-procedure TCustomThread.SetThreadProxy(value: TCustomThreadProxy);
+procedure TCustomThread.SetThreadProxy(value: TCustomThreadTask);
 begin
-  if Assigned(FProxy) then
-    FreeAndNil(FProxy);
-  FProxy := value;
-  FProxy.FOwner := Self;
-end;  
+  if Assigned(FTask) then
+    FreeAndNil(FTask);
+  FTask := value;
+  FTask.FOwner := Self;
+end;
 
-procedure TCustomThread.SetDoAfter(value: TCustomThreadProxy);
+procedure TCustomThread.SetDoAfter(value: TCustomThreadTask);
 begin
   if Assigned(FDoAfter) then
     FreeAndNil(FDoAfter);
@@ -520,46 +525,47 @@ begin
   FDoAfter.FOwner := Self;
 end;
 
-procedure TCustomThread.SetDoBefore(value: TCustomThreadProxy);
+procedure TCustomThread.SetDoBefore(value: TCustomThreadTask);
 begin
   if Assigned(FDoBefore) then
     FreeAndNil(FDoBefore);
   FDoBefore := value;
   FDoBefore.FOwner := Self;
-end;  
+end;
 
-procedure TCustomThread.SetOnAbort(value: TCustomThreadProxy);
-begin     
+procedure TCustomThread.SetOnAbort(value: TCustomThreadTask);
+begin
   if Assigned(FDoOnAbort) then
     FreeAndNil(FDoOnAbort);
   FDoOnAbort := value;
   FDoOnAbort.FOwner := Self;
 end;
 
-function TCustomThreadProxy.HasRun: Boolean;
+function TCustomThreadTask.HasRun: Boolean;
 begin
-  Result := FHasRun
+  Result := FRuned or FRunning;
 end;
 
-procedure TCustomThreadProxy.RunProc;
+procedure TCustomThreadTask.RunProc;
 begin
-  if Assigned(FEvent) or Assigned(FProc)
-     or Assigned(FProcOfObj) then
-    FHasRun := True;
-  if Assigned(FEvent) then
-    FEvent(FOwner)   // 将thread传入
-  else if Assigned(FProc) then
-    FProc
-  else if Assigned(FProcOfObj) then
-    FprocOfObj
-  else
-    raise Exception.Create('线程代理无效，无法执行!');
-end; 
+  FRunning := True;
+  try
+    if Assigned(FProc) then
+      FProc
+    else if Assigned(FProcOfObj) then
+      FprocOfObj
+    else
+      raise Exception.Create('线程代理无效，无法执行!');
+    FRuned := True;
+  finally
+    FRunning := False;
+  end;
+end;
 
 procedure TCustomThread.Resume;
 begin
   // 还没有被执行过,则执行
-  if not FProxy.HasRun then
+  if not FTask.HasRun then
     inherited Resume
   else
   begin
@@ -573,7 +579,7 @@ begin
     else if Suspended then
       // 执行中并且挂起了
       inherited Resume;
-  end;  
+  end;
 end;
 
 procedure TCustomThread.Suspend;
@@ -583,9 +589,9 @@ begin
 end;
 
 procedure TCustomThread.RunMainProxy;
-begin        
-  if Assigned(FProxy) then   // 调用函数
-    FProxy.RunProc;
+begin
+  if Assigned(FTask) then   // 调用函数
+    FTask.RunProc;
 end;
 
 { THandleObjectEx }

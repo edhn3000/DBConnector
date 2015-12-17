@@ -36,7 +36,8 @@ type
   TExecLineChangeEvent = procedure (nCurrLine: Integer) of object;
   
 { TSQLCmdType sql生成器使用 }
-  TSQLCmdType = (sctInsert, sctUpdate, sctDelete, sctSelect, sctCreate);
+  TSQLCmdType = (sctInsert, sctUpdate, sctDelete, sctSelect, sctCreate, sctDrop);
+  TSQLCmdTypes = Set of TSQLCmdType;
   
   IDBConnect = interface
   ['{68B0D79A-52B1-46A2-9713-EE4D5F7A6E23}']  
@@ -167,15 +168,15 @@ type
     function ExecQuery(sSql: string):Boolean; overload;
     function ExecQuery(AQ: TDataSet; sSql: string):Boolean; overload;
     function ExecQueryWithParams(sSqlWithParams: string;
-      Params: array of Variant):Boolean; overload;
+      Params: TParamsArray):Boolean; overload;
     function ExecQueryWithParams(AQ: TDataSet; sSqlWithParams: string;
-        aryParams: array of Variant):Boolean;overload;
+        aryParams: TParamsArray):Boolean;overload;
     function ExecUpdate(sSql: string): Integer; overload;
     function ExecUpdate(AQ: TDataSet; sSql: string): Integer; overload;
     function ExecUpdateWithParams(sSqlWithParams: string;
-      Params: array of Variant): Integer; overload;
+      Params: TParamsArray): Integer; overload;
     function ExecUpdateWithParams(AQ: TDataSet; sSqlWithParams: string;
-        aryParams: array of Variant): Integer;overload;
+        aryParams: TParamsArray): Integer;overload;
 
     function ExecOneSql(Asql: string; aQry: TDataSet = nil): Integer;
     // 执行多条sql

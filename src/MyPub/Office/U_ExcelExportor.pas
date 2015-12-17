@@ -20,7 +20,7 @@ type
   TExcelSheet = class;
   TExcelCell = class
   protected
-    FCell: Variant;
+    FCell: OleVariant;
     FRow: Integer;
     FCol: Integer;
     FOwnerSheet: TExcelSheet;
@@ -56,7 +56,7 @@ type
   
   TExcelSheet = class
   private 
-    FSheet: Variant;
+    FSheet: OleVariant;
     FCellMap: THashTable;
     function GetManagedCell(row, col: Integer): TExcelCell;
     function GetName(): string;
@@ -69,6 +69,7 @@ type
     property Name: string read GetName write SetName; 
     property Cell[indexX, indexY: Integer]: TExcelCell read GetCell;
     property CellValue[indexX, indexY: Integer]: string read GetCellValue write SetCellValue;
+    property Sheet: OleVariant read FSheet;
                            
     function GetColumnWidth(nColumnIndex: Integer): Integer;
     procedure SetColumnWidth(nColumnIndex, value: Integer);  
@@ -85,7 +86,7 @@ type
 
   TExcelBook = class
   private
-    FBook: Variant;
+    FBook: OleVariant;
     FActiveSheet: TExcelSheet;
     function GetSheetCount: Integer;
     function GetSheet(index: Integer): TExcelSheet;
@@ -99,7 +100,7 @@ type
 
   TExcelExportor = class
   private
-    FExcelApp: Variant;
+    FExcelApp: OleVariant;
     FActiveBook: TExcelBook;
     function GetVisible(): Boolean;
     procedure SetVisible(value: Boolean);
@@ -108,7 +109,7 @@ type
   public
     OnFreeCloseExcel: Boolean;
     property Visible: Boolean read GetVisible write SetVisible;
-    property ExcelApp: Variant read FExcelApp write FExcelApp;
+    property ExcelApp: OleVariant read FExcelApp write FExcelApp;
     property ActiveSheet: TExcelSheet read GetActiveSheet;      
     property ActiveWorkBook: TExcelBook read GetActiveWorkBook;
   public
@@ -215,7 +216,7 @@ end;
 
 procedure TExcelSheet.MergeRange(row1, col1, row2, col2: Integer);
 var
-  range: Variant;
+  range: OleVariant;
   sRangeStr: string;
 begin
   if (row1=row2) and (col1=col2) then
@@ -230,7 +231,7 @@ end;
 
 function TExcelSheet.isMergedCell(row, col: Integer): boolean;
 var
-  range: Variant;
+  range: OleVariant;
   sRangeStr: string;
   addr1, addr2: string;
 begin
@@ -243,7 +244,7 @@ end;
 
 function TExcelSheet.getMergedCellLeftTop(row, col: Integer): TExcelCell;
 var
-  range: Variant;
+  range: OleVariant;
   sRangeStr: string;   
   addr1, addr2: string;
   rangeObj: TExcelRange;

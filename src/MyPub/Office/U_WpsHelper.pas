@@ -1,64 +1,57 @@
-unit U_WordHelper;
+unit U_WPSHelper;
 
 interface
 
 uses
-  SysUtils, Variants, Classes, Controls, Forms,
-  ComCtrls, ComObj, ActiveX, Word_TLB, Office_TLB, U_OfficeHelper;
+  SysUtils, Variants, Classes, Controls, Forms, Windows,
+  ComCtrls, ComObj, ActiveX, WPS_TLB, Office_TLB, U_OfficeHelper;
 
 type
-  { TWordHelper }
-  TWordHelper = class(TOfficeHelper)
+  TWpsHelper = class(TOfficeHelper)
   private
-
-  protected
 
   protected
 
   public
     constructor Create; overload;
-    constructor Create(useActiveApp: Boolean);overload;
+    constructor Create(useActiveApp: Boolean); overload;
     destructor Destroy;override;
 
-    // 打开Word文档
+    // 打开Wps文档
     procedure NewFile(sFileName: String); override;
     procedure OpenFile(sFileName: String; readOnly: Boolean);overload; override;
-    // 关闭Word文档
+    // 关闭Wps文档
     procedure CloseFile(bSave: Boolean = false); override;
 
     function ExecuteControl(controlType: TOleEnum; tag: String): Boolean; override;
+  end;
+
+  TWpsV9Helper = class(TWpsHelper)
+  protected
+
+  public
+    constructor Create(useActiveApp: Boolean); overload;
 
   end;
 
+
 implementation
 
-uses
-  Windows;
+{ TWpsHelper }
 
-{ TWordHelper }
-
-constructor TWordHelper.Create;
+constructor TWpsHelper.Create;
 begin
   FOpend := False;
   Create(False);
 end;
 
-constructor TWordHelper.Create(useActiveApp: Boolean);
+constructor TWpsHelper.Create(useActiveApp: Boolean);
 begin
-  if CreateApplication(useActiveApp, 'Word.Application') then begin
-    // 不保存到Normal.dotm，避免文档被重复打开后在关闭时报错
-    FApplicatioin.Options.SaveNormalPrompt := False;
-  //  FWordApp := WordApplication(IDispatch(FApplicatioin));
-  //  if not CheckWordApp then
-  //  begin
-  //    //
-  //  end;
-    FIsInstalled := True;
-    FCloseOnFree := not FUseActiveApp;
-  end;
+  FIsInstalled := CreateApplication(useActiveApp, 'Wps.Application');
+  FCloseOnFree := not FUseActiveApp;
 end;
 
-destructor TWordHelper.Destroy;
+destructor TWpsHelper.Destroy;
 begin
   if FCloseOnFree then
   begin
@@ -67,7 +60,7 @@ begin
         CloseFile(False);
     except
       on e: Exception do
-        OutputDebugString(PChar('TWordHelper.Destroy close file error！' + e.Message));
+        OutputDebugString(PChar('TWpsHelper.Destroy close file error！' + e.Message));
     end;
   end;
   try
@@ -75,7 +68,7 @@ begin
       FApplicatioin.Quit(wdDoNotSaveChanges);
   except
     on e: Exception do
-      OutputDebugString(PChar('TWordHelper.Destroy quit application error！' + e.Message));
+      OutputDebugString(PChar('TWpsHelper.Destroy quit application error！' + e.Message));
   end;
 
   FApplicatioin := Unassigned;
@@ -83,7 +76,18 @@ begin
   inherited;
 end;
 
-procedure TWordHelper.NewFile(sFileName: String);
+procedure TWpsHelper.CloseFile(bSave: Boolean);
+begin
+  if bSave then begin
+    FDocument.SaveAs(FFileName);
+    FDocument.Close(wdDoNotSaveChanges);
+  end else begin
+    FDocument.Close(wdDoNotSaveChanges);
+  end;
+  FOpend := False;
+end;
+
+procedure TWpsHelper.NewFile(sFileName: String);
 begin
   FFileName := sFileName;
   FApplicatioin.Documents.Add;
@@ -91,7 +95,7 @@ begin
   FDocument := FApplicatioin.ActiveDocument;
 end;
 
-procedure TWordHelper.OpenFile(sFileName: String; readOnly: Boolean);
+procedure TWpsHelper.OpenFile(sFileName: String; readOnly: Boolean);
 begin
   FFileName := sFileName;
   if readOnly then
@@ -105,18 +109,7 @@ begin
   FOpend := True;
 end;
 
-procedure TWordHelper.CloseFile(bSave: Boolean);
-begin
-  if bSave then begin
-    FDocument.SaveAs(FFileName);
-    FDocument.Close(wdDoNotSaveChanges);
-  end else begin
-    FDocument.Close(wdDoNotSaveChanges);
-  end;
-  FOpend := False;
-end;
-
-function TWordHelper.ExecuteControl(controlType: TOleEnum; tag: String): Boolean;
+function TWpsHelper.ExecuteControl(controlType: TOleEnum; tag: String): Boolean;
 var
   cmdBar: OleVariant;
   cmdCtrl: OleVariant;
@@ -134,6 +127,19 @@ begin
       Result := False;
     end;
   end;
+end;
+
+{ TWpsV9Helper }
+
+constructor TWpsV9Helper.Create(useActiveApp: Boolean);
+begin
+  // V9版的API，className是Kwps.Application，如配置工具设置了兼容Word，也可以使用Word.Application
+  FIsInstalled := CreateApplication(useActiveApp, 'Kwps.Application');
+  if not FIsInstalled then begin
+    FIsInstalled := CreateApplication(useActiveApp, 'Word.Application');
+  end;
+
+  FCloseOnFree := not FUseActiveApp;
 end;
 
 end.

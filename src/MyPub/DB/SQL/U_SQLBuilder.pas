@@ -43,6 +43,7 @@ type
     function BuildUpdateSQL(): string;
     function BuildSelectSQL(): string;
     function BuildCreateSQL(): string;
+    function BuildDropSQL: String;
                                                     
     function InitByInsertSQL(sSql: string): Boolean;
     function InitByDeleteSQL(sSql: string): Boolean;
@@ -187,6 +188,12 @@ begin
   end;
 end;
 
+function TSQLBuilder.BuildDropSQL():String;
+begin
+  FSQLCommandType := sctDrop;
+  Result := Format('Drop Table %s;', [TableInfo.TableName]);
+end;
+
 function TSQLBuilder.BuildCreateSQL(): string;
 var
   i: Integer;
@@ -241,6 +248,7 @@ begin
     sctDelete: Result := BuildDeleteSQL();
     sctSelect: Result := BuildSelectSQL();
     sctCreate: Result := BuildCreateSQL();
+    sctDrop :  Result := BuildDropSQL();
   end;
 end;
 

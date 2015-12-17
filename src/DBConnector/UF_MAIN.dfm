@@ -189,21 +189,6 @@ object F_MAIN: TF_MAIN
                 inherited pnlClient: TPanel
                   inherited pgcClient: TPageControl
                     ActivePage = frmDBOperateMain.tsOutPut
-                    inherited tsData: TTabSheet
-                      ExplicitLeft = 0
-                      ExplicitTop = 0
-                      ExplicitWidth = 0
-                      ExplicitHeight = 0
-                      inherited pnlGrid: TPanel
-                        inherited pnl6: TPanel
-                          inherited tlbtbr1: TToolBar
-                            inherited btnAdjust: TToolButton
-                              ExplicitWidth = 23
-                            end
-                          end
-                        end
-                      end
-                    end
                     inherited tsOutPut: TTabSheet
                       inherited pnl7: TPanel
                         inherited pnl8: TPanel

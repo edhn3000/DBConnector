@@ -254,7 +254,7 @@ begin
   dbgrdData.OnSelectedField := SelectedField;
   EditorState := esNone;
   g_Global.RegisterFrame(Self);
-  FExecThread := TCustomThread.Create(TCustomThreadProxy.Create(DoExecuteLastSql), False);
+  FExecThread := TCustomThread.Create(TCustomThreadTask.Create(DoExecuteLastSql), False);
 end;
 
 procedure TFM_DBOperate.ReCreateDBConnect(dbt: TDBType);

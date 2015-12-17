@@ -12,7 +12,9 @@ interface
 uses
   DB, Classes; 
 
-type     
+type
+  TParamsArray = array of Variant;
+
   { TDBType 数据库类型,构造连接串时判断 }
   TDBType = (dbtUnKnown, dbtAccess, dbtAccess2007, dbtOracle, dbtSybase,
              dbtMySql, dbtSybaseASA, dbtSQLite, dbtDBF);
@@ -56,17 +58,17 @@ type
     { 执行sql的方法 }
     function ExecQuery(sSql: string):Boolean; overload;
     function ExecQuery(AQ: TDataSet; sSql: string):Boolean; overload;
-    function ExecQueryWithParams(sSqlWithParams: string; Params: array of Variant):Boolean; overload;
+    function ExecQueryWithParams(sSqlWithParams: string; params: TParamsArray):Boolean; overload;
     function ExecQueryWithParams(AQ: TDataSet; sSqlWithParams: string;
-        aryParams: array of Variant):Boolean;overload;
+        aryParams: TParamsArray):Boolean;overload;
 
     function ExecUpdate(sSql: string): Integer; overload;
     function ExecUpdate(AQ: TDataSet; sSql: string): Integer; overload;
-    function ExecUpdateWithParams(sSqlWithParams: string; Params: array of Variant): Integer; overload;
+    function ExecUpdateWithParams(sSqlWithParams: string; Params: TParamsArray): Integer; overload;
     function ExecUpdateWithParams(AQ: TDataSet; sSqlWithParams: string;
-        aryParams: array of Variant): Integer;overload;
+        aryParams: TParamsArray): Integer;overload;
 
-    function ExecProc(sProcName: String; params: array of Variant):Boolean;overload;
+    function ExecProc(sProcName: String; params: TParamsArray):Boolean;overload;
     function ExecProc(sProcName: String; keyvalues: TStrings):Boolean;overload;
 
     { 事务 }

@@ -7,7 +7,7 @@ unit U_RegexUtil;
 {$WARNINGS OFF}
 interface
 uses
-  Contnrs, PerlRegEx, SysUtils, XMLDoc, Generics.Collections;
+  Contnrs, PerlRegEx, SysUtils, XMLDoc, Generics.Collections, Generics.Defaults;
 
 type
   {TMatchResult}
@@ -54,9 +54,29 @@ type
 -------------------------------------------------------------------------------}
     class function MatchAll(sPattern:string; index: Integer; sContent: String;
       resultList: TObjectList<TMatchResult>): Boolean;
+
   end;
 
 implementation
+
+var
+  FRegexCache: TDictionary<String,TPerlRegEx>;
+
+function GetRegexObject(sPattern: String): TPerlRegEx;
+var
+  regex: TPerlRegEx;
+begin
+  if FRegexCache.ContainsKey(sPattern) then begin
+    regex := FRegexCache.Items[sPattern];
+  end else begin
+    regex := TPerlRegEx.Create(nil);
+    regex.RegEx := sPattern;
+    regex.Options := [preMultiLine, preExtended];
+    regex.Compile;
+    FRegexCache.Add(sPattern, regex);
+  end;
+  Result := regex;
+end;
 
 { TRegexUtil }
 
@@ -90,31 +110,25 @@ var
   i: Integer;
 begin
   Result := nil;
-  regex := TPerlRegEx.Create(nil);
-  try
-    regex.Subject := sContent;
-    regex.RegEx := sPattern;
-    regex.Options := [preMultiLine, preExtended];
-    if regex.Match then
+  regex := GetRegexObject(sPattern);
+  regex.Subject := sContent;
+  if regex.Match then
+  begin
+    if regex.SubExpressionCount >= index then
     begin
-      if regex.SubExpressionCount >= index then
-      begin
-        matchResult := TMatchResult.Create;
-        matchResult.FMatchStr := regex.SubExpressions[index];
-        matchResult.FStart := regex.SubExpressionOffsets[index];
-        matchResult.FLen := regex.SubExpressionLengths[index];
-        Result := matchResult;
-        for i := 0 to regex.SubExpressionCount do begin
-          mrSub := TMatchResult.Create;
-          mrSub.FMatchStr := regex.SubExpressions[i];
-          mrSub.FStart := regex.SubExpressionOffsets[i];
-          mrSub.FLen := regex.SubExpressionLengths[i];
-          matchResult.Groups.Add(mrSub);
-        end;
+      matchResult := TMatchResult.Create;
+      matchResult.FMatchStr := regex.SubExpressions[index];
+      matchResult.FStart := regex.SubExpressionOffsets[index];
+      matchResult.FLen := regex.SubExpressionLengths[index];
+      Result := matchResult;
+      for i := 0 to regex.SubExpressionCount do begin
+        mrSub := TMatchResult.Create;
+        mrSub.FMatchStr := regex.SubExpressions[i];
+        mrSub.FStart := regex.SubExpressionOffsets[i];
+        mrSub.FLen := regex.SubExpressionLengths[i];
+        matchResult.Groups.Add(mrSub);
       end;
     end;
-  finally
-    regex.Free;
   end;
 end;
 
@@ -140,35 +154,29 @@ var
   matchResult, mrSub: TMatchResult;
   i: Integer;
 begin
-  regex := TPerlRegEx.Create(nil);
-  try
-    regex.Subject := sContent;
-    regex.RegEx := sPattern;
-    regex.Options := [preMultiLine, preExtended];
-    if regex.Match then
-    begin
-      repeat
-        if regex.SubExpressionCount >= index then
-        begin
-          matchResult := TMatchResult.Create;
-          matchResult.FMatchStr := regex.SubExpressions[index];
-          matchResult.FStart := regex.SubExpressionOffsets[index];
-          matchResult.FLen := regex.SubExpressionLengths[index];
-          resultList.Add(matchResult);
-          for i := 0 to regex.SubExpressionCount do begin
-            mrSub := TMatchResult.Create;
-            mrSub.FMatchStr := regex.SubExpressions[i];
-            mrSub.FStart := regex.SubExpressionOffsets[i];
-            mrSub.FLen := regex.SubExpressionLengths[i];
-            matchResult.Groups.Add(mrSub);
-          end;
+  regex := GetRegexObject(sPattern);
+  regex.Subject := sContent;
+  if regex.Match then
+  begin
+    repeat
+      if regex.SubExpressionCount >= index then
+      begin
+        matchResult := TMatchResult.Create;
+        matchResult.FMatchStr := regex.SubExpressions[index];
+        matchResult.FStart := regex.SubExpressionOffsets[index];
+        matchResult.FLen := regex.SubExpressionLengths[index];
+        resultList.Add(matchResult);
+        for i := 0 to regex.SubExpressionCount do begin
+          mrSub := TMatchResult.Create;
+          mrSub.FMatchStr := regex.SubExpressions[i];
+          mrSub.FStart := regex.SubExpressionOffsets[i];
+          mrSub.FLen := regex.SubExpressionLengths[i];
+          matchResult.Groups.Add(mrSub);
         end;
-      until not regex.MatchAgain;
-    end;
-    Result := resultList.Count > 0;
-  finally
-    regex.Free;
+      end;
+    until not regex.MatchAgain;
   end;
+  Result := resultList.Count > 0;
 end;
 
 { TMatchResult }
@@ -183,5 +191,12 @@ begin
   FGroups.Free;
   inherited;
 end;
+
+initialization
+  FRegexCache := TObjectDictionary<String,TPerlRegEx>.Create([doOwnsValues]);
+
+finalization
+  if Assigned(FRegexCache) then
+    FreeAndNil(FRegexCache);
 
 end.

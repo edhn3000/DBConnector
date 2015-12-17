@@ -298,9 +298,9 @@ begin
     FExportOption.ClobInFile := chkClobInFile.Checked;
     FExportOption.ExportData := chkExportData.Checked;
 
-    FThread := TCustomThread.Create(TCustomThreadProxy.Create(DoExport), True);
-    FThread.DoBeforeExecute := TCustomThreadProxy.Create(DoBeforeExport);
-    FThread.DoAfterExecute := TCustomThreadProxy.Create(DoAfterExport);
+    FThread := TCustomThread.Create(TCustomThreadTask.Create(DoExport), True);
+    FThread.DoBeforeExecute := TCustomThreadTask.Create(DoBeforeExport);
+    FThread.DoAfterExecute := TCustomThreadTask.Create(DoAfterExport);
     FThread.Resume;
   end;
 end;

@@ -62,8 +62,8 @@
 						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">9</VersionInfo>
-						<VersionInfo Name="Release">2</VersionInfo>
-						<VersionInfo Name="Build">1505</VersionInfo>
+						<VersionInfo Name="Release">6</VersionInfo>
+						<VersionInfo Name="Build">1507</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -75,12 +75,12 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription">集成多数据库访问功能的数据库工具</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.9.2.1505</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.9.6.1507</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>
 						<VersionInfoKeys Name="OriginalFilename"/>
-						<VersionInfoKeys Name="ProductName">DBTool</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductName">DBConnector</VersionInfoKeys>
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>
@@ -111,7 +111,7 @@
 			</DCCReference>
 			<DCCReference Include="..\MyPub\UI\U_UIUtil.pas"/>
 			<DCCReference Include="..\MyPub\IO\U_FileUtil.pas"/>
-			<DCCReference Include="..\MyPub\U_ThreadUtil.pas"/>
+			<DCCReference Include="..\MyPub\thread\U_ThreadUtil.pas"/>
 			<DCCReference Include="UF_About.pas">
 				<Form>F_About</Form>
 			</DCCReference>
@@ -198,6 +198,7 @@
 			<DCCReference Include="..\MyPub\regex\U_RegexUtil.pas"/>
 			<DCCReference Include="..\MyPub\Log\U_Log.pas"/>
 			<DCCReference Include="..\MyPub\Log\U_Log4d.pas"/>
+			<DCCReference Include="..\MyPub\thread\U_ThreadPool.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

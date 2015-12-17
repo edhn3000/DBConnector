@@ -530,8 +530,8 @@ end;
 
 procedure TF_DBOption.cbbDBTypeChange(Sender: TObject);
 begin
-  if (cbbDBType.ItemIndex > 0) and (pgcOptions.PageCount >cbbDBType.ItemIndex-1) then
-    SetPageIndex(cbbDBType.ItemIndex-1);
+  if (cbbDBType.ItemIndex >= 0) and (pgcOptions.PageCount >cbbDBType.ItemIndex) then
+    SetPageIndex(cbbDBType.ItemIndex);
 //  pgcOptions.Enabled := cbbDBType.ItemIndex <> C_nDBTypeItemIndex_None;
   ChangeCurrnetUser;
 end;
@@ -730,7 +730,7 @@ end;
 function TF_DBOption.Apply: Boolean;
 begin
   Result := False;
-  if cbbDBType.ItemIndex = 0 then
+  if cbbDBType.ItemIndex = -1 then
   begin
     MessageBox(Handle, '请选择一个数据库类型！', '提示',
       MB_OK + MB_ICONINFORMATION);

@@ -710,8 +710,8 @@ begin
     end;
     if g_Global.Connected then
     begin
-      g_frmDBOperate.ExecThread.DoAfterExecute := TCustomThreadProxy.Create(DoAfterExecSqlThread);
-      g_frmDBOperate.ExecThread.DoOnAbort := TCustomThreadProxy.Create(DoAfterExecSqlThread);
+      g_frmDBOperate.ExecThread.DoAfterExecute := TCustomThreadTask.Create(DoAfterExecSqlThread);
+      g_frmDBOperate.ExecThread.DoOnAbort := TCustomThreadTask.Create(DoAfterExecSqlThread);
       g_frmDBOperate.ExecuteSql(sSqlText);
       Result := g_Global.DBConnect.LastOperSucc;
     end
@@ -2132,22 +2132,24 @@ end;
 
 function TF_MAIN.GetFieldUpdatesByTableNode(tableNode: TTreeNode): string;
 var
-  fieldNode: TTreeNode;
-  sFieldUpdates: string;
+  firstNode, node: TTreeNode;
+  fieldName, sFieldUpdates: string;
 begin
   // 检查字段是否已经加载
   if tableNode.getFirstChild = nil then
     g_DBTreeFunc.AddDBTreeNodeChilds(tvwObjects, tableNode, IsSystemObjects, FbSortNode);
-  fieldNode := tableNode.getFirstChild;
-  while fieldNode <> nil do
+  firstNode := tableNode.getFirstChild;
+  node := firstNode.getNextSibling;
+  while node <> nil do
   begin
+    fieldName := pubFunc.GetFieldShortName(node.Text);
     if sFieldUpdates = '' then
-      sFieldUpdates := pubFunc.GetFieldShortName(fieldNode.Text) + '='
+      sFieldUpdates := fieldName + '=:' + fieldName
     else
-      sFieldUpdates := sFieldUpdates + ','
-        + pubFunc.GetFieldShortName(fieldNode.Text) + '=';
-    fieldNode := fieldNode.getNextSibling;
+      sFieldUpdates := sFieldUpdates + ', ' + fieldName + '=:' + fieldName;
+    node := node.getNextSibling;
   end;
+
   Result := sFieldUpdates;
 end;
 
@@ -2174,7 +2176,7 @@ function TF_MAIN.GenUpdateSqlByNode(node: TTreeNode): string;
 var
   tag: TNodeTag;
   sFieldUpdates: string;
-  sTable: string;
+  sTable, sWhere, fieldName: string;
 begin    
   tag := TDBTreeNodeData(node.Data).NodeTag;
 
@@ -2195,7 +2197,13 @@ begin
   else
     Exit;
   end;
-  Result := Format('Update %s set %s where %s;', [sTable, sFieldUpdates, '']);
+  sWhere := '';
+  if node.getFirstChild <> nil then begin
+    fieldName := pubFunc.GetFieldShortName(node.getFirstChild.Text);
+    sWhere := fieldName + '=:' + fieldName;
+  end;
+
+  Result := Format('Update %s set %s where %s;', [sTable, sFieldUpdates, sWhere]);
 end;
 
 procedure TF_MAIN.mniGenUpdateClick(Sender: TObject);  
@@ -2206,6 +2214,7 @@ var
   function GetTableFieldsForUpdateOnUI(tableNode: TTreeNode): string;
   var
     fieldNode: TTreeNode;
+    fieldName: String;
   begin
     // 检查字段是否已经加载
     if tableNode.getFirstChild = nil then
@@ -2214,10 +2223,11 @@ var
     fieldNode := tableNode.getFirstChild;
     while fieldNode <> nil do
     begin
+      fieldName := pubFunc.GetFieldShortName(fieldNode.Text);
       if Result = '' then
-        Result := pubFunc.GetFieldShortName(fieldNode.Text) + '='
+        Result := fieldName + '=:' + fieldName
       else
-        Result := Result + ',' + pubFunc.GetFieldShortName(fieldNode.Text) + '=';
+        Result := Result + ', ' + fieldName + '=:' + fieldName;
       fieldNode := fieldNode.getNextSibling;
     end;
   end;

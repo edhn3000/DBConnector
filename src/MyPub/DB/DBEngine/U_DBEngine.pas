@@ -15,8 +15,7 @@ interface
 uses
   ADODB, DB, Classes, Variants, DBTables, U_DBEngineInterface;
 
-type   
-
+type
 { TDBEngine 该类有抽象方法，需要用实际的DBEngine类来实例化 }
   TDBEngine = class(TInterfacedObject, IDBEngine)
   private
@@ -49,7 +48,7 @@ type
     procedure SetMaxRecords(value: Integer);virtual;
     function GetDBHandle: Pointer;virtual;
 
-    //  ExtractStrings 不添加空字符串到列表，实际有为空的可能  所以需要自己写分割字符串的方法    
+    //  ExtractStrings 不添加空字符串到列表，实际有为空的可能  所以需要自己写分割字符串的方法
     function Split(sText: String; sSeparator: String; ssParts: TStrings):TStrings;
     // abstract
     function doCloseConnection: Boolean;virtual;abstract;
@@ -62,6 +61,8 @@ type
     procedure doExecQueryWithParams(Ads: TDataSet; sSql: string;aryParams: array of Variant);virtual;abstract;
     function doExecUpdate(Ads: TDataSet; sSql: string):Integer;virtual;abstract;
     function doExecUpdateWithParams(Ads: TDataSet; sSql: string;aryParams: array of Variant):Integer;virtual;abstract;
+    // 默认是批量调用doExecUpdate
+    function doExecUpdateList(Ads: TDataSet; sqls: TStrings):Integer;virtual;
 
   public
     property DBType: TDBType read FDBType;
@@ -112,17 +113,20 @@ type
     { 执行sql的方法 }
     function ExecQuery(sSql: string):Boolean; overload;
     function ExecQuery(AQ: TDataSet; sSql: string):Boolean; overload;virtual;
-    function ExecQueryWithParams(sSqlWithParams: string; Params: array of Variant):Boolean; overload;
+    function ExecQueryWithParams(sSqlWithParams: string; Params: TParamsArray):Boolean; overload;
     function ExecQueryWithParams(AQ: TDataSet; sSqlWithParams: string;
-        aryParams: array of Variant):Boolean;overload;virtual;
+        aryParams: TParamsArray):Boolean;overload;virtual;
 
     function ExecUpdate(sSql: string): Integer; overload;
     function ExecUpdate(AQ: TDataSet; sSql: string): Integer; overload;virtual;
-    function ExecUpdateWithParams(sSqlWithParams: string; Params: array of Variant): Integer; overload;
+    function ExecUpdateWithParams(sSqlWithParams: string; Params: TParamsArray): Integer; overload;
     function ExecUpdateWithParams(AQ: TDataSet; sSqlWithParams: string;
-        aryParams: array of Variant): Integer;overload;virtual;
+        aryParams: TParamsArray): Integer;overload;virtual;
+    // 批量更新
+    function ExecUpdateList(sqls: TStrings): Integer; overload;
+    function ExecUpdateList(AQ: TDataSet; sqls: TStrings): Integer; overload;
 
-    function ExecProc(sProcName: String; params: array of Variant):Boolean;overload;
+    function ExecProc(sProcName: String; params: TParamsArray):Boolean;overload;
     function ExecProc(sProcName: String; keyvalues: TStrings):Boolean;overload;
 
     { 事务 }
@@ -340,7 +344,7 @@ begin
   end;
 end;      
 
-function TDBEngine.ExecProc(sProcName: String; params: array of Variant): Boolean;
+function TDBEngine.ExecProc(sProcName: String; params: TParamsArray): Boolean;
 var
   i: Integer;
 begin
@@ -428,8 +432,37 @@ begin
   end;
 end;
 
-function TDBEngine.ExecQueryWithParams(AQ: TDataSet;
-  sSqlWithParams: string; aryParams: array of Variant): Boolean;
+function TDBEngine.ExecUpdateList(AQ: TDataSet; sqls: TStrings): Integer;
+begin
+  try
+    FLastError := '';
+    FLastExecTime := Now;
+//    ClearLog;
+    Result := doExecUpdateList(AQ, sqls);
+    FLastElapsedMillis := GetMillisFromDateTime(Now - FLastExecTime);
+  except
+    on ex: Exception do
+    begin
+      Result := C_nTDBE_ERROR_EXECFAIL;
+      FLastError := ex.Message;
+//      raise Exception.Create('(TDBEngine.ExecUpdate) ' + ex.Message);
+    end;
+  end;
+end;
+
+function TDBEngine.ExecUpdateList(sqls: TStrings): Integer;
+var
+ ds: TDataSet;
+begin
+  ds := GetNewQuery;
+  try
+    Result := ExecUpdateList(FDataSet, sqls);
+  finally
+    ds.Free;
+  end;
+end;
+
+function TDBEngine.ExecQueryWithParams(AQ: TDataSet;sSqlWithParams: string; aryParams: TParamsArray):Boolean;
 begin
   try
     FLastError := '';
@@ -449,7 +482,7 @@ begin
 end;
 
 function TDBEngine.ExecUpdateWithParams(AQ: TDataSet;
-  sSqlWithParams: string; aryParams: array of Variant): Integer;
+  sSqlWithParams: string; aryParams: TParamsArray): Integer;
 begin
   try    
     FLastError := '';
@@ -490,24 +523,51 @@ begin
     Result := doExecUpdate(Ads, Asql);
 end;
 
+function TDBEngine.doExecUpdateList(Ads: TDataSet; sqls: TStrings): Integer;
+var
+  i, effectCount: Integer;
+begin
+  effectCount := 0;
+  for i := 0 to sqls.Count - 1 do begin
+    effectCount := effectCount + doExecUpdate(Ads, sqls[i]);
+  end;
+  Result := effectCount;
+end;
+
 function TDBEngine.ExecQuery(sSql: string):Boolean;
 begin
+  // 不传入Data的ExecQuery应使用内部的DataSet，以便于外部查看数据
   Result := ExecQuery(FDataSet, sSql);
 end;
 
-function TDBEngine.ExecQueryWithParams(sSqlWithParams: string; Params: array of Variant):Boolean;
+function TDBEngine.ExecQueryWithParams(sSqlWithParams: string; Params: TParamsArray):Boolean;
 begin
   Result := ExecQueryWithParams(FDataSet, sSqlWithParams, Params);
 end;
 
 function TDBEngine.ExecUpdate(sSql: string): Integer;
+var
+  ds: TDataSet;
 begin
-  Result := ExecUpdate(FDataSet, sSql);
+  // 使用新DataSet以避免多线程冲突
+  ds := GetNewQuery;
+  try
+    Result := ExecUpdate(ds, sSql);
+  finally
+    ds.Free;
+  end;
 end;
 
-function TDBEngine.ExecUpdateWithParams(sSqlWithParams: string; Params: array of Variant): Integer;
+function TDBEngine.ExecUpdateWithParams(sSqlWithParams: string; Params: TParamsArray): Integer;
+var
+  ds: TDataSet;
 begin
-  Result := ExecUpdateWithParams(FDataSet, sSqlWithParams, Params);
+  ds := GetNewQuery;
+  try
+    Result := ExecUpdateWithParams(ds, sSqlWithParams, Params);
+  finally
+    ds.Free;
+  end;
 end;
 
 function TDBEngine.KeepDBOpen: Boolean;
@@ -551,7 +611,7 @@ end;
 function TDBEngine.GetLastError: string;
 begin
   Result := FLastError;
-end;   
+end;
 
 function TDBEngine.GetLastElapsedMilis: Double;
 begin

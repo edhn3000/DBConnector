@@ -28,7 +28,7 @@ uses
   U_PlanarList, U_JSON, U_TextFileWriter;
 
 type           
-  TEffectRowCounter = class
+  TEffectRowStat = class
   public
     Default: Integer;
     Insert: Integer;
@@ -47,11 +47,11 @@ type
 
 { TDBConnect 通用的数据库连接类，改类不要包含抽象方法，使一般数据库类型可使用此类 }
   TDBConnect = class(TInterfacedObject, IDBConnect)
-  private     
+  private
     FDBType        : TDBType;                    // 数据库类型
     FDBEngine      : IDBEngine;                  // 数据库引擎对象
     FEngineShared  : Boolean;                    // 数据库引擎是否共享状态，共享的引擎不可被Free
-    
+
     FCurrExecLine  : Integer;                    // 上次产生错误的行号
     FLastSQL       : string;                     // 最近一条sql
     FLastQry       : TDataSet;                   // 最近一个qry
@@ -71,7 +71,7 @@ type
     FMaxRecords    : Integer;                    // 设置后 查询时加上限制
     FVariables     : TStringList;                // 变量列表，为保存var命令的变量
     FPageIndex     : Integer;                    // 使用FPageIndex个的FnMaxRecords方式显示记录
-    FRowCounter    : TEffectRowCounter;          // 行数计算器 
+    FRowStat       : TEffectRowStat;             // 行数计算器
 
     // 事件
     FOnExecLineChange: TExecLineChangeEvent;     // 事件 执行一行sql时触发
@@ -81,7 +81,7 @@ type
     FOnExecuted    : TNotifyEvent;
 
     FDBCommandManager: TDBCommandManager;    // 避免单元循环引用暂用TObject
-                                
+
     function GetLog: TStrings;
     function GetLastError: string;
     function GetConnection: TCustomConnection;
@@ -99,14 +99,14 @@ type
     function GetPageIndex: Integer;
     procedure SetPageIndex(value: Integer);
     function GetDropNoError: Boolean;
-    procedure SetDropNoError(value: Boolean);   
+    procedure SetDropNoError(value: Boolean);
     function GetVariables: TStringList;
     procedure SetVariables(value: TStringList);
     function GetSystemObject: Boolean;
     procedure SetSystemObject(value: Boolean);
     function GetLastElapsedMilis: Double;
 
-    function GetDBType(): TDBType;                                                        
+    function GetDBType(): TDBType;
     function GetDBEngine(): IDBEngine;
     function GetNewDBEngine(Adbet: TDBEngineType): IDBEngine;
     procedure CheckDBEngine(Adbet: TDBEngineType);
@@ -125,17 +125,17 @@ type
     procedure ProcessLobExport(qry: TDataSet; tableInfo: TTableInfo;
       sInsertSqlPrefix: string; slstPlanar: TPlanarStringList;
       sExportFileName: string; ClobInFile: Boolean; RemoveBreakLine: Boolean);
-  
-  protected        
+
+  protected
     // last items 都是protected
     FsLastScript   : string;                     // 上次执行的脚本
     FbInScript     : Boolean;                    // 是否正在执行脚本
 
     function GetSqlFromQuery(ds: TDataSet; var sql: string): Boolean;
     procedure SetDBType(value: TDBType);
-    
+
     procedure FillListByField(List: TStrings; ADataSet: TDataSet;
-      FieldNames: array of string);     
+      FieldNames: array of string);
     procedure FillListByOwnerName(List: TStrings; ADataSet: TDataSet);
     procedure GetObjectNames(List: TStrings; sSql: string; AQry: TDataSet = nil);
 
@@ -161,7 +161,7 @@ type
     property DBType: TDBType read GetDBType;
     property DBEngine: IDBEngine read GetDBEngine;
 
-    property LastError: string read GetLastError;                        
+    property LastError: string read GetLastError;
     property LastSQL: string read GetLastSQL;
     property LastSQLType: TDBConnectSQLType read GetLastSQLType;
     property LastOperSucc: Boolean read GetLastOperSucc;
@@ -183,8 +183,8 @@ type
     // 运行期可改参数重置，同时会用于setdefault命令
     procedure ResetParams;
 
-    procedure ClearLog;      
-    procedure AddLog(sLog: string); 
+    procedure ClearLog;
+    procedure AddLog(sLog: string);
     procedure AddErrorLog(sLog: string);
     procedure AddInfoLog(sLog: string);
     procedure AddSqlExecLog(nEffectRows: Integer; sCommandContent: string;
@@ -201,13 +201,13 @@ type
     function CloseQuery: Boolean;
     function GetNewQuery: TDataSet; virtual;
 //    function GetCanShowDataSet(ds: TDataSet): TDataSet;virtual;
-    procedure StopExec(); 
+    procedure StopExec();
 
     //*************** virtual ***************
     procedure GetDBs(List: TStrings);virtual;
     procedure GetTableNames(List: TStrings;
       AQry: TDataSet = nil);virtual;
-    // 获得对象列表，可得到更多信息        
+    // 获得对象列表，可得到更多信息
     function GetTableInfo(sTableName: string): TTableInfo;virtual;
     function GetTableInfos(AQry: TDataSet = nil):TTableInfoList;virtual;
     function GetFieldInfos(const tableName: string; AQry: TDataSet = nil): TFieldItemList;virtual;
@@ -215,7 +215,7 @@ type
     procedure GetFieldNames(const tableName: string; List: TStrings;
       option: TFieldShowOptions; AQry: TDataSet = nil);virtual;
     procedure GetProcedureNames(List: TStrings; AQry: TDataSet = nil);virtual;
-    procedure GetTriggerNames(List: TStrings; AQry: TDataSet = nil);virtual; 
+    procedure GetTriggerNames(List: TStrings; AQry: TDataSet = nil);virtual;
     function GetPrimaryField(TableName: string; AQry: TDataSet = nil): TFieldItem; virtual;
     function IsFieldUnique(tableName, fieldName: string;
       AQry: TDataSet = nil): Boolean; virtual;
@@ -247,15 +247,15 @@ type
     function ExecQuery(sSql: string):Boolean; overload;
     function ExecQuery(AQ: TDataSet; sSql: string):Boolean; overload;virtual;
     function ExecQueryWithParams(sSqlWithParams: string;
-      Params: array of Variant):Boolean; overload;
+      Params: TParamsArray):Boolean; overload;
     function ExecQueryWithParams(AQ: TDataSet; sSqlWithParams: string;
-        aryParams: array of Variant):Boolean;overload;virtual;
+        aryParams: TParamsArray):Boolean;overload;virtual;
     function ExecUpdate(sSql: string): Integer; overload;
     function ExecUpdate(AQ: TDataSet; sSql: string): Integer; overload;virtual;
     function ExecUpdateWithParams(sSqlWithParams: string;
-      Params: array of Variant): Integer; overload;
+      Params: TParamsArray): Integer; overload;
     function ExecUpdateWithParams(AQ: TDataSet; sSqlWithParams: string;
-        aryParams: array of Variant): Integer;overload;virtual;
+        aryParams: TParamsArray): Integer;overload;virtual;
 
     function ExecOneSql(Asql: string; aQry: TDataSet = nil): Integer;virtual;
     // 执行多条sql
@@ -269,7 +269,7 @@ type
     function GetProcSource(sName: string; list: TStrings): string;virtual;
     function GetTrigSource(sName: string; list: TStrings): string;virtual;
     function GetViewSource(sName: string; list: TStrings): string;virtual;
-     
+
     function UpdateBlobs(JsonStr: string): Integer;virtual;
     function UpdateClobs(JsonStr: string): Integer;virtual;
 
@@ -280,12 +280,12 @@ type
     procedure GetFormNames(List: TStrings; AQry: TDataSet = nil);virtual;
     procedure GetPageNames(List: TStrings; AQry: TDataSet = nil);virtual;
 
-    // oracle    
+    // oracle
     procedure GetUsers(List: TStrings);virtual;
     procedure GetSynonymNames(List: TStrings);virtual;
     procedure GetDBLinkNames(List: TStrings);virtual;
 
-  published                                
+  published
     property OnLog: TDBLogEvent read GetOnLog write SetOnLog;
     property OnConnected: TNotifyEvent read GetOnConnected write SetOnConnected;
     property OnDisConnected: TNotifyEvent read GetOnDisConnected write SetOnDisConnected;
@@ -305,7 +305,7 @@ implementation
 
 uses
   SysUtils, StrUtils, Forms,
-  U_DBEngineFactory, U_SqlUtils;
+  U_DBEngineFactory, U_SqlUtils, U_FileUtil;
 
 function GetMillisFromDateTime(dt: TDateTime): Double;
 var
@@ -333,7 +333,7 @@ begin
       sErrMsg := 'Conn命令参数格式：DbTypeStr UserName/Password@DataSourceStr';
       Exit;
     end;
-    
+
     // 第一个参数 是数据库类型
     dbt := StrToDBType(params[0]);
     if dbt = dbtUnKnown then
@@ -364,11 +364,11 @@ begin
     begin
       sErrMsg := '无法从参数2分析出用户信息';
       Exit;
-    end;    
+    end;
     sUser := Copy(sParam, 1, nPos-1);
     sPass := Copy(sParam, nPos+1, nPos2-nPos-1);
     sDB   := Copy(sParam, nPos2+1, nPos3-nPos2-1);
-    
+
     if Copy(sDB, 1, 1) = '"' then
       sDB := Copy(sDB, 2, MaxInt);
     if Copy(sDB, Length(sDB), 1) = '"' then
@@ -381,18 +381,18 @@ end;
 
 { TEffectRowCounter }
 
-procedure TEffectRowCounter.AddErrorLineNo(nLineNo: Integer);
+procedure TEffectRowStat.AddErrorLineNo(nLineNo: Integer);
 begin
   SetLength(AryErrorLineNos, Length(AryErrorLineNos)+1);
   AryErrorLineNos[High(AryErrorLineNos)] := nLineNo;
 end;
 
-function TEffectRowCounter.AllLineCount: Integer;
+function TEffectRowStat.AllLineCount: Integer;
 begin
   Result := Default + Insert + Delete + Update + Select + Error;
 end;
 
-function TEffectRowCounter.GetErrorLinesText: string;
+function TEffectRowStat.GetErrorLinesText: string;
 var
   i: Integer;
 begin
@@ -403,14 +403,14 @@ begin
       Result := Result + ',' + IntToStr(AryErrorLineNos[i]);
 end;
 
-function TEffectRowCounter.HasChanged: Boolean;
+function TEffectRowStat.HasChanged: Boolean;
 begin
   Result := (Insert <> 0) or (Delete <> 0) or (Update <> 0) or (Default <> 0)
     or (Error <> 0) or (Length(AryErrorLineNos) <> 0);
 end;
 
-procedure TEffectRowCounter.ReSet;
-begin          
+procedure TEffectRowStat.ReSet;
+begin
   Default := 0;
   Insert  := 0;
   Delete  := 0;
@@ -418,7 +418,7 @@ begin
   Select  := 0;
   Error   := 0;
   SetLength(AryErrorLineNos, 0);
-end;    
+end;
 
 { TDBConnect }
 
@@ -432,7 +432,7 @@ end;
 function TDBConnect.IsClobField(Field: TField): Boolean;
 begin
   Result := Field.DataType in [ftOraClob, ftMemo];
-end;  
+end;
 
 function TDBConnect.GetNewTableInfo: TTableInfo;
 begin
@@ -456,7 +456,7 @@ begin
   nPos := Pos(' ', s);
   if nPos <> 0 then
     Result := TSqlUtils.IsSqlBeginCommand(Trim(Copy(s, 1, nPos-1)));
-end;  
+end;
 
 function TDBConnect.RemoveHeadFlag(Asql: string): string;
 begin
@@ -467,7 +467,7 @@ begin
 end;
 
 constructor TDBConnect.Create;
-begin       
+begin
   FLastOperSucc := True;
   FLastSQLType := dbcstCommand;
   FLastElapsedMillis := 0;
@@ -476,14 +476,14 @@ begin
   FStopExeced := True;
   FbInScript := False;
   FEngineShared := False;
-   
+
   FLog := TStringList.Create;
-              
+
   FVariables := TStringList.Create;
 
-  FRowCounter := TEffectRowCounter.Create;
-  FRowCounter.ReSet;
-                 
+  FRowStat := TEffectRowStat.Create;
+  FRowStat.ReSet;
+
   FPageIndex := 1;
 
   FDBCommandManager := TDBCommandManager.Create;
@@ -491,10 +491,10 @@ begin
 
   ResetParams;
   FDBEngine := nil;
-end;   
+end;
 
 procedure TDBConnect.ResetParams;
-begin  
+begin
   FDropNoError := False;
   MaxRecords := 0;
 end;
@@ -503,8 +503,8 @@ destructor TDBConnect.Destroy;
 begin
   if Assigned(FDBCommandManager) then
     FreeAndNil(FDBCommandManager);
-  if Assigned(FRowCounter) then
-    FreeAndNil(FRowCounter);
+  if Assigned(FRowStat) then
+    FreeAndNil(FRowStat);
   if Assigned(FVariables) then
     FreeAndNil(FVariables);
   if Assigned(FDBEngine) and not FEngineShared then begin
@@ -518,7 +518,7 @@ end;
 
 function TDBConnect.ExecQuery(sSql: string):Boolean;
 begin
-  Result := DBEngine.ExecQuery(sSql); 
+  Result := DBEngine.ExecQuery(sSql);
   FLastSQLType := dbcstQuery;
   FLastSQL := sSql;
   if not Result then
@@ -526,10 +526,10 @@ begin
 end;
 
 function TDBConnect.ExecQueryWithParams(sSqlWithParams: string;
-  Params: array of Variant):Boolean;
+  Params: TParamsArray):Boolean;
 begin
   Result := DBEngine.ExecQueryWithParams(sSqlWithParams, Params);
-  FLastSQLType := dbcstQuery;  
+  FLastSQLType := dbcstQuery;
   FLastSQL := sSqlWithParams;
   if not Result then
     AddErrorLog(DBEngine.GetLastError);
@@ -538,15 +538,15 @@ end;
 function TDBConnect.ExecUpdate(sSql: string): Integer;
 begin
   Result := DBEngine.ExecUpdate(sSql);
-  FLastSQLType := dbcstUpdate; 
+  FLastSQLType := dbcstUpdate;
   FLastSQL := sSql;
   if Result = C_nTDBE_ERROR_EXECFAIL then
     AddErrorLog(DBEngine.GetLastError);
 end;
 
 function TDBConnect.ExecUpdateWithParams(sSqlWithParams: string;
-  Params: array of Variant): Integer;
-begin 
+  Params: TParamsArray): Integer;
+begin
   Result := DBEngine.ExecUpdateWithParams(sSqlWithParams, Params);
   FLastSQLType := dbcstUpdate;
   FLastSQL := sSqlWithParams;
@@ -560,7 +560,7 @@ var
 begin
   if bCopy then
   begin
-    if Assigned(Self.FDBEngine) then    
+    if Assigned(Self.FDBEngine) then
       Self.FDBEngine := nil;
     CheckDBEngine(DestDBEngine.GetDBEngineType);
     Self.FDBEngine.SetOnConnected(DestDBEngine.GetOnConnected);
@@ -593,7 +593,7 @@ begin
         end
       end
       else
-      begin 
+      begin
         if Assigned(FOnDisConnected) then
         begin
           FOnDisConnected(Self);
@@ -615,17 +615,17 @@ var
   sLogPrefix: string;
 begin
   if FbInScript then
-    sLogPrefix := 'ExecLogInScript'
+    sLogPrefix := Format('ExecLogInScript Line(%d)', [FCurrExecLine])
   else
     sLogPrefix := 'ExecLog';
   if SameText(sCommandContent, 'delete') then begin
-    Inc(FRowCounter.Delete, nEffectRows);
+    Inc(FRowStat.Delete, nEffectRows);
     AddLog(Format('%s: 删除的行数%d',[sLogPrefix, nEffectRows]));
   end else if SameText(sCommandContent, 'insert') then begin
-    Inc(FRowCounter.Insert, nEffectRows);
+    Inc(FRowStat.Insert, nEffectRows);
     AddLog(Format('%s: 插入的行数%d',[sLogPrefix, nEffectRows]));
   end else if SameText(sCommandContent, 'update') then begin
-    Inc(FRowCounter.Update, nEffectRows);
+    Inc(FRowStat.Update, nEffectRows);
     AddLog(Format('%s: 更新的行数%d',[sLogPrefix, nEffectRows]));
   end else if SameText(sCommandContent, 'create') then begin
     if (nEffectRows >= 0) then
@@ -642,7 +642,7 @@ begin
         AddLog(Format('%s: 销毁失败。表名=%s'
           +'打开DropNoError开关可屏蔽此提示。',[sLogPrefix, relData]));
     end;
-  end else if SameText(sCommandContent, C_sHeadFlag_Blob) then begin 
+  end else if SameText(sCommandContent, C_sHeadFlag_Blob) then begin
     if (nEffectRows >= 0) then
       AddLog(Format('%s: 更新Blob成功。影响的数据行数%d',[sLogPrefix, nEffectRows]))
     else
@@ -652,7 +652,7 @@ begin
       AddLog(Format('%s: 执行成功。影响的数据行数%d',[sLogPrefix, nEffectRows]))
     else
       AddLog(Format('%s: 执行失败。',[sLogPrefix, nEffectRows]));
-    Inc(FRowCounter.Default, nEffectRows);
+    Inc(FRowStat.Default, nEffectRows);
   end;
 end;
 
@@ -684,7 +684,7 @@ begin
     sRealSql := Copy(Asql, Pos(' ', Asql), Length(Asql))
   else
     sRealSql := Asql;
-  
+
   try
     if AnsiStartsText(C_sHeadFlag_Script, sRealSql) then begin   // 执行脚本
       nOneExecResult := ExecScriptFile(Copy(sRealSql,
@@ -699,7 +699,7 @@ begin
       if Pos(C_sDBCmdParam_Var_Start, sRealSql) > 0 then begin
         SetVariableValue(sRealSql);
       end;
-      FLastQry := theQry; 
+      FLastQry := theQry;
       if bOpen then begin
         if FMaxRecords > 0 then begin
           sRealSql := GetMaxRecordSQLCondition(FMaxRecords*FPageIndex, sRealSql);
@@ -720,18 +720,18 @@ begin
       bError := True;
       sError := ex.Message;
     end;
-  end;    
+  end;
 
   sSqlCommand := TSqlUtils.GetSqlCommand(sRealSql, sRelData);
-  FLastSQL := sRealSql;     
+  FLastSQL := sRealSql;
   FLastOperSucc := not bError;
 
   if bError then begin
     if (LowerCase(sSqlCommand) = 'drop') and FDropNoError then
       //
     else begin
-      Inc(FRowCounter.Error);
-      FRowCounter.AddErrorLineNo(FCurrExecLine);
+      Inc(FRowStat.Error);
+      FRowStat.AddErrorLineNo(FCurrExecLine);
       Result := C_nTDBE_ERROR_EXECFAIL;
       sError := DBEngine.GetLastError;
       if not FbInScript then
@@ -740,7 +740,7 @@ begin
       else
         AddErrorLog(Format('Line(%d) ' + sError, [FCurrExecLine]));
     end;
-    
+
     nOneExecResult := TDBC_ERROR_EXECFAIL;
   end;
 
@@ -760,7 +760,7 @@ var
   function GetCombineSql(sqlList: TStrings; var nStartIndex: Integer): string;
   var
     sCombinedSql: string;
-    nLine: Integer;  
+    nLine: Integer;
     sLine: string;
     isInBlock: Boolean;
   begin
@@ -768,14 +768,14 @@ var
     isInBlock := False;
     while nLine <= sqlList.Count - 1 do
     begin
-      sLine := Trim(sqlList[nLine]);      
+      sLine := Trim(sqlList[nLine]);
       // check if has 'begin'
       if not isInBlock then
         isInBlock :=
           fStrUtil.MatchRegxSubStr('[A,a][S,s]\s*$', sLine) or
           (fStrUtil.PosFrom('Begin', sLine, 1, True) = 1);
 
-      // combine sql 
+      // combine sql
       if sCombinedSql = '' then
         sCombinedSql := TSqlUtils.DeleteSQLComment(sLine)
       else if Copy(sCombinedSql, Length(sCombinedSql), 1) = ' ' then
@@ -799,28 +799,27 @@ var
           Break;
 //        nEndPos := fStrUtil.PosEscapeQuote(C_sSQLEnd, sCombinedSql, '''', '''');
       end;
-      
+
       Inc(nLine);
-    end;    
+    end;
 
     nStartIndex := nLine;
     Result := sCombinedSql;
-  end;  
+  end;
 //// ExecSqlList Begin
 begin
   nEffectRows := 0;
-  SetExecLine(1);
   FStopExec := False;
   FStopExeced := False;
   execTime := Now;
 //  ClearLog;       // 错误列表清空
   i := 0;
 
-  FRowCounter.ReSet;
+  FRowStat.ReSet;
   while i <= slstSqlList.Count - 1 do begin
     Application.ProcessMessages;
-    
-    SetExecLine(i);
+
+    SetExecLine(i+1);
     if FStopExec then begin  // 退出标志
       FStopExeced := True;
       Break;
@@ -879,20 +878,20 @@ begin
   // 如果恰好为-2会误认为是未连接的标志
   if Connected and (nEffectRows<0) then
     nEffectRows := TDBC_ERROR_EXECFAIL;
-    
-  if FRowCounter.HasChanged then begin
+
+  if FRowStat.HasChanged then begin
     sSummeryLog := '';
-    if FRowCounter.Delete <> 0 then
-      sSummeryLog := sSummeryLog + Format(' 删除%d行',[FRowCounter.Delete]);
-    if FRowCounter.Insert <> 0 then
-      sSummeryLog := sSummeryLog + Format(' 插入%d行',[FRowCounter.Insert]);
-    if FRowCounter.Update <> 0 then
-      sSummeryLog := sSummeryLog + Format(' 更新%d行',[FRowCounter.Update]);
-    if FRowCounter.Default <> 0 then
-      sSummeryLog := sSummeryLog + Format(' 其他影响行数%d行',[FRowCounter.Default]);
-    if FRowCounter.Error <> 0 then begin
-      sSummeryLog := sSummeryLog + Format(' 错误%d行',[FRowCounter.Error]);
-      sSummeryLog := sSummeryLog + Format(' 错误行号=%s',[FRowCounter.GetErrorLinesText]);
+    if FRowStat.Delete <> 0 then
+      sSummeryLog := sSummeryLog + Format(' 删除%d行',[FRowStat.Delete]);
+    if FRowStat.Insert <> 0 then
+      sSummeryLog := sSummeryLog + Format(' 插入%d行',[FRowStat.Insert]);
+    if FRowStat.Update <> 0 then
+      sSummeryLog := sSummeryLog + Format(' 更新%d行',[FRowStat.Update]);
+    if FRowStat.Default <> 0 then
+      sSummeryLog := sSummeryLog + Format(' 其他影响行数%d行',[FRowStat.Default]);
+    if FRowStat.Error <> 0 then begin
+      sSummeryLog := sSummeryLog + Format(' 错误%d行',[FRowStat.Error]);
+      sSummeryLog := sSummeryLog + Format(' 错误行号=%s',[FRowStat.GetErrorLinesText]);
     end;
     if sSummeryLog <> '' then begin
       if FbInScript then         
@@ -940,7 +939,7 @@ begin
     try
       AScriptFile := GetValidFullPath(AScriptFile);
       if not FileExists(AScriptFile) then begin
-        Result := TDBC_ERROR_SCRIPT_FILENOTEXISTS;  
+        Result := TDBC_ERROR_SCRIPT_FILENOTEXISTS;
         AddErrorLog('找不到脚本文件' + AScriptFile);
         Exit;
       end;
@@ -2047,7 +2046,7 @@ end;
 
 function TDBConnect.ExecQuery(AQ: TDataSet; sSql: string): Boolean;
 begin
-  Result := DBEngine.ExecQuery(AQ, sSql); 
+  Result := DBEngine.ExecQuery(AQ, sSql);
   FLastSQLType := dbcstQuery; 
   FLastSQL := sSql;
   if not Result then    
@@ -2064,7 +2063,7 @@ begin
 end;
 
 function TDBConnect.ExecQueryWithParams(AQ: TDataSet;
-  sSqlWithParams: string; aryParams: array of Variant): Boolean;
+  sSqlWithParams: string; aryParams: TParamsArray): Boolean;
 begin
   Result := DBEngine.ExecQueryWithParams(AQ, sSqlWithParams, aryParams);
   FLastSQLType := dbcstQuery;
@@ -2074,7 +2073,7 @@ begin
 end;
 
 function TDBConnect.ExecUpdateWithParams(AQ: TDataSet;
-  sSqlWithParams: string; aryParams: array of Variant): Integer;
+  sSqlWithParams: string; aryParams: TParamsArray): Integer;
 begin
   Result := DBEngine.ExecUpdateWithParams(AQ, sSqlWithParams, aryParams); 
   FLastSQLType := dbcstUpdate;

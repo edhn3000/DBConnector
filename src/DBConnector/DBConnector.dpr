@@ -13,7 +13,7 @@ uses
   UF_Find in '..\MyPub\UF_Find.pas' {F_Find},
   U_UIUtil in '..\MyPub\UI\U_UIUtil.pas',
   U_FileUtil in '..\MyPub\IO\U_FileUtil.pas',
-  U_ThreadUtil in '..\MyPub\U_ThreadUtil.pas',
+  U_ThreadUtil in '..\MyPub\thread\U_ThreadUtil.pas',
   UF_About in 'UF_About.pas' {F_About},
   U_Ini in 'U_Ini.pas',
   UF_BaseDialog in 'UF_BaseDialog.pas' {F_BaseDialog},
@@ -75,7 +75,8 @@ uses
   U_SQLiteDBConnect in '..\MyPub\DB\DBConnect\U_SQLiteDBConnect.pas',
   U_RegexUtil in '..\MyPub\regex\U_RegexUtil.pas',
   U_Log in '..\MyPub\Log\U_Log.pas',
-  U_Log4d in '..\MyPub\Log\U_Log4d.pas';
+  U_Log4d in '..\MyPub\Log\U_Log4d.pas',
+  U_ThreadPool in '..\MyPub\thread\U_ThreadPool.pas';
 
 {$R *.res}
 //{$R ..\MyPub\XPStyle\XPStyle.res}     

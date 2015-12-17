@@ -2,7 +2,7 @@ unit U_Log;
 
 interface
 uses
-  Windows, SysUtils, Dialogs;
+  Windows, SysUtils, Dialogs, Classes;
 
 const
   C_LogLevel_DEBUG = 1;
@@ -14,7 +14,12 @@ const
 type
   { TAbstractLog }
   TAbstractLog = class
+  private
+    FLogLevel: Integer;
   public
+    // 默认为0，使用全局变量，如不为0则应使用此变量，可实现每个Log对象不同Level
+    property LogLevel: Integer read FLogLevel write FLogLevel default 0;
+
     procedure Log(const AMsg: string; nLevel: Integer); virtual; abstract;
     procedure Debug(AMsg: string);
     procedure Info(AMsg: string);
@@ -36,6 +41,7 @@ type
   private
     FLogfile: TextFile;
     FLogOpened: Boolean;
+    FLogLock: TRTLCriticalSection;
   protected
     FOwner: TObject;
     FRelativePath: string;
@@ -45,8 +51,10 @@ type
     FMaxLogCount: Integer;
 
     function getModulePath: String;
+    function IsEmptyFile(fileName: String): Boolean;
     procedure OpenLogFile();
     procedure CloseLogFile();
+    procedure DeleteOldFiles(logFileName: string; reserveCount: Integer);
     procedure NewLogFile(const sFilename: string);
   public
     property RelativePath: String read FRelativePath write FRelativePath;
@@ -61,6 +69,8 @@ type
     procedure InitLogger(fileName: string); virtual;
     procedure CloseLogger; virtual;
     procedure Log(const AMsg: string; nLevel: Integer); override;
+
+    procedure ClearFile;
   end;
 
 var
@@ -101,6 +111,36 @@ begin
   Result := -1;
 end;
 
+procedure FindOldLogFiles(sPath: string; fileShrotName: string; outFileList: TStrings);
+var
+  FSrchRec: TSearchRec;
+  nFindResult: Integer;
+  nSearchMode: Integer;
+begin
+  sPath := IncludeTrailingPathDelimiter(sPath);
+  nSearchMode := faAnyFile;
+
+  nFindResult := FindFirst(sPath + fileShrotName + '.*', nSearchMode, FSrchRec);
+  try
+    while nFindResult = 0 do
+    begin
+      if (FSrchRec.Name <> '.') and (FSrchRec.Name <> '..') then
+      begin
+        if (FSrchRec.Attr and faDirectory) = faDirectory then
+        begin
+          FindOldLogFiles(FSrchRec.Name, fileShrotName, outFileList);
+        end else if fileShrotName <> FSrchRec.Name then begin
+          outFileList.Add(sPath + FSrchRec.Name);
+        end;
+      end;
+
+      nFindResult := FindNext(FSrchRec);
+    end;
+  finally
+    FindClose(FSrchRec);
+  end;
+end;
+
 { TAbstractLog }
 
 procedure TAbstractLog.Debug(AMsg: string);
@@ -134,7 +174,7 @@ begin
     and (nLevel <= High(C_ARY_LOG_LEVEL)) then begin
     Result := C_ARY_LOG_LEVEL[nLevel];
   end else begin
-    Result := 'UnknownLevel';
+    Result := 'UnknownLevel_' + IntToStr(nLevel);
   end;
 end;
 
@@ -162,6 +202,7 @@ end;
 
 constructor TTextFileLog.Create(owner: TObject; blockFile: Boolean);
 begin
+  InitializeCriticalSection(FLogLock);
   FOwner := owner;
   FBlockFile := blockFile;
   FShowToViewer := True;
@@ -172,15 +213,53 @@ end;
 destructor TTextFileLog.Destroy;
 begin
   CloseLogger;
+  DeleteCriticalSection(FLogLock);
   inherited;
+end;
+
+function TTextFileLog.IsEmptyFile(fileName: String): Boolean;
+var
+  f: TextFile;
+begin
+  AssignFile(f, fileName);
+  try
+    Reset(f);
+    Result := Eof(f);
+  finally
+    CloseFile(f);
+  end;
 end;
 
 procedure TTextFileLog.OpenLogFile;
 begin
   if not FLogOpened then begin
+    // 非锁定模式时log文件可能在运行过程中被删掉
+    if not FBlockFile and not FileExists(FLogFileName) then begin
+      NewLogFile(FLogFileName);
+    end;
     AssignFile(FLogfile,FLogFileName);
     Append(FLogfile);
     FLogOpened := True;
+  end;
+end;
+
+procedure TTextFileLog.ClearFile;
+begin
+  EnterCriticalSection(FLogLock);
+  try
+    if not FBlockFile then begin
+      OpenLogFile;
+    end;
+    try
+      System.Rewrite(FLogFile);
+      Flush(FLogfile);
+    finally
+      if not FBlockFile then begin
+        CloseLogFile;
+      end;
+    end;
+  finally
+    LeaveCriticalSection(FLogLock);
   end;
 end;
 
@@ -193,11 +272,31 @@ begin
   end;
 end;
 
+procedure TTextFileLog.DeleteOldFiles(logFileName: String; reserveCount: Integer);
+var
+  i: Integer;
+  sOldLogFile: String;
+  fileList: TStringList;
+begin
+  // 删除过多文件
+  fileList := TStringList.Create;
+  try
+    FindOldLogFiles(ExtractFilePath(logFileName), ExtractFileName(logFileName), fileList);
+    // 排序后从前往后删除，保留名字顺序靠后的，就是较新的，因为文件名会带日期
+    fileList.Sort;
+    for i := 0 to fileList.Count - 1 - reserveCount do begin
+      sOldLogFile := fileList[i];
+      DeleteFile(sOldLogFile);
+    end;
+  finally
+    fileList.Free;
+  end;
+end;
+
 procedure TTextFileLog.NewLogFile(const sFilename: string);
 var
-  sNewFileName, sOldLogFile: string;
+  sNewFileName: string;
   fileDate: TDateTime;
-//  i: Integer;
 begin
   if FileExists(sFilename) then
   begin
@@ -207,23 +306,14 @@ begin
       sNewFileName := sFilename + '.' + FormatDateTime('yyyymmdd', fileDate);
       if FileExists(sNewFileName) then
         DeleteFile(sNewFileName);
-      RenameFile(sFilename, sNewFileName);
+      if IsEmptyFile(sFilename) then
+        DeleteFile(sFilename)
+      else
+        RenameFile(sFilename, sNewFileName);
     end;
   end;
 
-  // 删除过多文件
-  if FMaxLogCount > 0 then begin
-    fileDate := Now - FMaxLogCount;
-    sOldLogFile := sFilename + '.' + FormatDateTime('yyyymmdd', fileDate);
-    repeat
-      if FileExists(sOldLogFile) then
-        DeleteFile(sOldLogFile)
-      else
-        Break;
-      fileDate := fileDate - 1;
-      sOldLogFile := sFilename + '.' + FormatDateTime('yyyymmdd', fileDate);
-    until not FileExists(sOldLogFile);
-  end;
+  DeleteOldFiles(sFilename, FMaxLogCount);
 
   if not FileExists(sFilename) then
     FileClose(FileCreate(sFilename));
@@ -231,7 +321,7 @@ end;
 
 procedure TTextFileLog.InitLogger(fileName: string);
 var
-  sDir: String;
+  sDir, sExt, sName: String;
 begin
   if FRelativePath = '' then
     sDir := getModulePath
@@ -239,13 +329,31 @@ begin
     sDir := FRelativePath;
   FLogFileName := IncludeTrailingPathDelimiter(sDir) + fileName;
   sDir := ExtractFilePath(FLogFileName);
-  if not DirectoryExists(sDir) then
-    ForceDirectories(sDir);
 
-  NewLogFile(FLogFileName);
+  EnterCriticalSection(FLogLock);
+  try
+    if not DirectoryExists(sDir) then
+      ForceDirectories(sDir);
 
-  if FBlockFile then begin
-    OpenLogFile;
+    NewLogFile(FLogFileName);
+
+    if FBlockFile then begin
+      try
+        OpenLogFile;
+      except
+        sExt := ExtractFileExt(FLogFileName);
+        if sExt <> '' then begin
+          sName := Copy(FLogFileName, 1, Length(FLogFileName) - Length(sExt));
+        end else
+          sName := FLogFileName;
+        FLogFileName := Format(sName + '_Thd%d' + sExt, [GetCurrentThreadId]);
+        NewLogFile(FLogFileName);
+
+        OpenLogFile;
+      end;
+    end;
+  finally
+    LeaveCriticalSection(FLogLock);
   end;
 
 //  Info('===========================开始记录=================================');
@@ -254,27 +362,38 @@ end;
 procedure TTextFileLog.Log(const AMsg: string; nLevel: Integer);
 var
   className: String;
+  level: Integer;
 begin
-  if (nLevel >= G_LogLevel) or (nLevel = C_LogLevel_ERROR) then
+  if Self.LogLevel = 0 then
+    level := G_LogLevel
+  else
+    level := Self.LogLevel;
+
+  if (nLevel >= level) or (nLevel >= C_LogLevel_ERROR) then
   begin
     if ShowToViewer then
       ConsoleLog.Log(AMsg, nLevel);
 
-    if not FBlockFile then begin
-      OpenLogFile;
-    end;
+    EnterCriticalSection(FLogLock);
     try
-      if Assigned(FOwner) then
-        className := '[' + FOwner.ClassName + ']-';
-
-      Writeln(FLogfile, Format('%s %s[%s] [ThreadId=%d] %s',[
-        FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz ',Now), className,
-        TTextFileLog.GetLogLevelCN(nLevel), GetCurrentThreadId, AMsg]));
-      Flush(FLogfile);
-    finally
       if not FBlockFile then begin
-        CloseLogFile;
+        OpenLogFile;
       end;
+      try
+        if Assigned(FOwner) then
+          className := '[' + FOwner.ClassName + ']-';
+
+        Writeln(FLogfile, Format('%s %s[%s] [ThreadId=%d] %s',[
+          FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz ',Now), className,
+          TTextFileLog.GetLogLevelCN(nLevel), GetCurrentThreadId, AMsg]));
+        Flush(FLogfile);
+      finally
+        if not FBlockFile then begin
+          CloseLogFile;
+        end;
+      end;
+    finally
+      LeaveCriticalSection(FLogLock);
     end;
   end;
 end;
