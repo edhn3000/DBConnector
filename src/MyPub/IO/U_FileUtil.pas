@@ -14,7 +14,8 @@ interface
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Windows, Classes, SysUtils, Generics.Collections, Generics.Defaults;
+  Windows, Classes, SysUtils, Generics.Collections, Generics.Defaults,
+  ShellAPI, ShlObj, Forms, ActiveX;
 
 type
   TTextFormat=(tfAnsi,tfUnicode,tfUnicodeBigEndian,tfUtf8);
@@ -167,10 +168,22 @@ type
     class function GetFileVersion(fn: string):string;//得到程序的版本号
   end;
 
-implementation
+{-------------------------------------------------------------------------------
+  过程名:    SelectDirectory 选择目录窗口
+  参数:      Caption: string; 显示的标题
+             Root: WideString; 根目录
+             Directory: string; 引用传递，可传入初始选择目录，执行后内容为用户选择的路径
+             Owner: HWND;
+             ShowNewButton: Boolean; 显示新建按钮
+  返回值:    Boolean 选择确定返回true，选择取消返回false
+-------------------------------------------------------------------------------}
+  function SelectDirectory(const Caption: string; const Root: WideString;
+    var Directory: string; Owner: HWND; ShowNewButton: Boolean = True): Boolean;
 
-uses
-  Forms, ShellAPI, ShlObj;
+  // 旧式选择目录窗口
+  function BrowseFolder(const Folder: string): string;
+
+implementation
 
 const
   C_sSLASH_SCRIPT = '/';
@@ -246,6 +259,91 @@ begin
     BFFM_INITIALIZED: SendMessage(Wnd, BFFM_SETSELECTION, 1, lpData);
   end;
   Result := 0;
+end;
+
+function SelectDirCB(Wnd: HWND; uMsg: UINT; lParam, lpData: LPARAM): Integer stdcall;
+begin
+  if (uMsg = BFFM_INITIALIZED) and (lpData <> 0) then
+    SendMessage(Wnd, BFFM_SETSELECTION, Integer(True), lpdata);
+  Result := 0;
+end;
+
+function SelectDirectory(const Caption: string; const Root: WideString;
+  var Directory: string; Owner: HWND; ShowNewButton: Boolean = True): Boolean;
+var
+  BrowseInfo: TBrowseInfo;
+  Buffer: PChar;
+  RootItemIDList, ItemIDList: PItemIDList;
+  ShellMalloc: IMalloc;
+  IDesktopFolder: IShellFolder;
+  Eaten, Flags: LongWord;
+begin
+  Result := False;
+  FillChar(BrowseInfo, SizeOf(BrowseInfo), 0);
+  if (ShGetMalloc(ShellMalloc) = S_OK) and (ShellMalloc <> nil) then
+  begin
+    Buffer := ShellMalloc.Alloc(MAX_PATH);
+    try
+      SHGetDesktopFolder(IDesktopFolder);
+      if Root = '' then
+        RootItemIDList := nil
+      else
+        IDesktopFolder.ParseDisplayName(Application.Handle, nil,
+          POleStr(Root), Eaten, RootItemIDList, Flags);
+      with BrowseInfo do
+      begin
+        hwndOwner := Owner;
+        pidlRoot := RootItemIDList;
+        pszDisplayName := Buffer;
+        lpszTitle := PChar(Caption);
+        ulFlags := BIF_RETURNONLYFSDIRS;
+        if ShowNewButton then
+          ulFlags := ulFlags or $0040;
+        lpfn := SelectDirCB;
+        lparam := Integer(PChar(Directory));
+      end;
+      ItemIDList := SHBrowseForFolder(BrowseInfo);
+      Result :=  ItemIDList <> nil;
+      if Result then
+      begin
+        ShGetPathFromIDList(ItemIDList, Buffer);
+        ShellMalloc.Free(ItemIDList);
+        Directory := Buffer;
+      end;
+    finally
+      ShellMalloc.Free(Buffer);
+    end;
+  end;
+end;
+
+function BrowseFolder(const Folder: string): string;
+var
+  TitleName: string;
+  lpItemID: PItemIDList;
+  BrowseInfo: TBrowseInfo;
+  DisplayName: array[0..MAX_PATH] of char;
+  TempPath: array[0..MAX_PATH] of char;
+begin
+  Result := Folder;
+  FillChar(BrowseInfo, sizeof(TBrowseInfo), #0);
+  BrowseInfo.hwndOwner := GetActiveWindow;
+  BrowseInfo.pszDisplayName := @DisplayName;
+  TitleName := '请选择一个目录';
+  BrowseInfo.lpszTitle := PChar(TitleName);
+  BrowseInfo.ulFlags := BIF_RETURNONLYFSDIRS or BIF_NEWDIALOGSTYLE;
+  BrowseInfo.lpfn := BrowseCallbackProc;
+  BrowseInfo.lParam := Integer(PChar(Folder));
+  lpItemID := SHBrowseForFolder(BrowseInfo);
+  // 选择了某目录
+  if Assigned(lpItemId) then
+  begin
+    SHGetPathFromIDList(lpItemID, TempPath);
+    GlobalFreePtr(lpItemID);
+    Result := string(TempPath);
+  end
+  else
+  // 选择了“取消 ”
+    Result:=Folder;
 end;
 
 { TFileUtil }
@@ -514,11 +612,8 @@ begin
   Result := s;
   for i := Length(Result) downto 1 do
   begin
-    if Result[i] = '.' then
+    if Result[i] = '.' then begin
       Result := Copy(Result, 1, i - 1);
-    if Result[i] = PathDelim then
-    begin
-      Result := Copy(Result, i + 1, Length(Result));
       Break;
     end;
   end;

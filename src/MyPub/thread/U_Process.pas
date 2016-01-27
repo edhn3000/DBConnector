@@ -93,6 +93,7 @@ type
 
     function KillProcess(ProcessID: Integer): Boolean;overload;
     function KillProcess(ImagePath: string): Boolean;overload;
+
     function KillProcessList(proclist: TProcessInfoList): Boolean;
 
     procedure FillRepeatProcessList(nRepeatTimes: Integer; RepeatPrecessList:TProcessInfoList);

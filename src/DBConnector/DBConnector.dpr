@@ -6,7 +6,7 @@ uses
   Variants,
   SysUtils,
   ComCtrls,
-  UF_MAIN in 'UF_MAIN.pas' {F_MAIN},
+  UF_MAIN in 'UF_MAIN.pas' {F_DBConnectorMain},
   U_Const in 'U_Const.pas',
   U_Pub in 'U_Pub.pas',
   U_CommonFunc in '..\MyPub\common\U_CommonFunc.pas',
@@ -64,7 +64,7 @@ uses
   U_ExcelExportor in '..\MyPub\Office\U_ExcelExportor.pas',
   U_DBExport in '..\MyPub\DB\U_DBExport.pas',
   U_Convertor in '..\MyPub\U_Convertor.pas',
-  U_TextFileWriter in '..\MyPub\U_TextFileWriter.pas',
+  U_TextFileWriter in '..\MyPub\IO\U_TextFileWriter.pas',
   U_TriggerInfo in '..\MyPub\DB\DBConnect\U_TriggerInfo.pas',
   U_IndexInfo in '..\MyPub\DB\DBConnect\U_IndexInfo.pas',
   U_DBConnectInterface in '..\MyPub\DB\U_DBConnectInterface.pas',
@@ -76,7 +76,8 @@ uses
   U_RegexUtil in '..\MyPub\regex\U_RegexUtil.pas',
   U_Log in '..\MyPub\Log\U_Log.pas',
   U_Log4d in '..\MyPub\Log\U_Log4d.pas',
-  U_ThreadPool in '..\MyPub\thread\U_ThreadPool.pas';
+  U_ThreadPool in '..\MyPub\thread\U_ThreadPool.pas',
+  U_ExportUtil in '..\MyPub\IO\U_ExportUtil.pas';
 
 {$R *.res}
 //{$R ..\MyPub\XPStyle\XPStyle.res}     
@@ -99,7 +100,7 @@ begin
 
   if ParamCount = 0 then
   begin
-  Application.CreateForm(TF_MAIN, F_MAIN);
+  Application.CreateForm(TF_DBConnectorMain, F_DBConnectorMain);
   Application.CreateForm(TDataModule1, DataModule1);
   Application.Run;
   end

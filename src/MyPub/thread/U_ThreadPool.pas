@@ -12,7 +12,10 @@ type
   TCriticalSectionLock = class(TObject)
   protected
     FSection: TRTLCriticalSection;
+    FLocked: Boolean;
   public
+    property Locked: Boolean read FLocked;
+
     constructor Create;
     destructor Destroy; override;
     // 进入临界区
@@ -56,7 +59,7 @@ type
   // 线程状态
 //  TThreadState = (tcsInitializing{新建|初始化}, tcsWaiting{等待|就绪}, tcsGetting, tcsProcessing{运行},
 //    tcsProcessed, tcsTerminating, tcsCheckingDown);
-  TThreadState = (tcsInitializing{新建|初始化}, tcsWaiting{等待|就绪}, tcsProcessing{运行},
+  TThreadState = (tcsInitializing{新建|初始化}, tcsWaiting{等待|就绪}, tcsProcessing{运行}, tcsProcessed,
     tcsTerminating{结束}, tcsCheckingDown);
 
   { TPoolProcessorThread 工作线程仅用于线程池内， 不要直接创建并调用它。}
@@ -121,8 +124,10 @@ type
   TEmptyKind = (ekQueueEmpty, // 任务被取空后
                 ekProcessingFinished // 最后一个任务处理完毕后
                );
-  // 任务队列空时触发的事件
+  // 任务队列空时触发的事件，分两种情况，无任务，或任务都处理完毕
   TQueueEmpty = procedure(Sender: TThreadPool; EmptyKind: TEmptyKind) of object;
+  // 任务都处理完毕时会触发，相当于EmptyKind=ekProcessingFinished，注意，不要在TQueueFinish时释放Pool对象，避免引起死锁
+  TQueueFinish = procedure(Sender: TThreadPool) of object;
 
   { TThreadsPool }
   TThreadPool = class(TComponent)
@@ -135,6 +140,7 @@ type
     FQueue: TQueue;
     FQueueCapacity: Integer; // 队列长度
     FQueueEmpty: TQueueEmpty;
+    FQueueFinish: TQueueFinish;
     // 工作线程
     FThreads: TList<TPoolProcessorThread>;
     // 线程超时阀值,0为不超时
@@ -191,6 +197,7 @@ type
     property OnProcessRequest: TProcessRequest read FProcessRequest write FProcessRequest;
     // 任务列表为空时解发的事件
     property OnQueueEmpty: TQueueEmpty read FQueueEmpty write FQueueEmpty;
+    property OnQueueFinish: TQueueFinish read FQueueFinish write FQueueFinish;
     // 线程初始化时触发的事件
     property OnThreadInitializing: TProcessorThreadInitializing read FThreadInitializing write FThreadInitializing;
     // 线程结束时触发的事件
@@ -248,16 +255,20 @@ end;
 procedure TCriticalSectionLock.Lock;
 begin
   EnterCriticalSection(FSection);
+  FLocked := True;
 end;
 
 procedure TCriticalSectionLock.UnLock;
 begin
+  FLocked := False;
   LeaveCriticalSection(FSection);
 end;
 
 function TCriticalSectionLock.TryLock: Boolean;
 begin
   Result := TryEnterCriticalSection(FSection);
+  if Result then
+    FLocked := True;
 end;
 
 
@@ -356,7 +367,7 @@ begin
         FThreads[i].Terminate;
         Inc(n);
       end;
-    WaitForMultipleObjects(n, @Handles[0], True, 30000);
+    WaitForMultipleObjects(n, @Handles[0], True, 10000);
 
     for i := 0 to FThreads.Count - 1 do
       FThreads[i].Free;
@@ -566,6 +577,10 @@ begin
   WriteLog('QueueEmpty! EmptyKind=' + IntToStr(Integer(EmptyKind)), LOG_LEVEL_DEBUG);
   if Assigned(FQueueEmpty) then
     FQueueEmpty(Self, EmptyKind);
+  if EmptyKind = ekProcessingFinished then begin
+    if Assigned(FQueueFinish) then
+      FQueueFinish(Self);
+  end;
 end;
 
 procedure TThreadPool.DoThreadFinalizing(aThread: TPoolProcessorThread);
@@ -849,6 +864,7 @@ begin
           try
             // 开始处理的时间戳
             uProcessingStart := GetTickCount;
+
             // 当前状态：执行任务
             try
               WriteLog(Format('线程执行任务(%s)', [FProcessingDataObject.Name]), LOG_LEVEL_DEBUG);
@@ -877,7 +893,7 @@ begin
           end;
 
           // 执行线程外事件
-          FCurState := tcsWaiting;
+          FCurState := tcsProcessed;
           uWaitingStart := GetTickCount;
           FPool.DoProcessed;
         end;

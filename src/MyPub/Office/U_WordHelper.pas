@@ -47,8 +47,8 @@ constructor TWordHelper.Create(useActiveApp: Boolean);
 begin
   if CreateApplication(useActiveApp, 'Word.Application') then begin
     // 不保存到Normal.dotm，避免文档被重复打开后在关闭时报错
-    FApplicatioin.Options.SaveNormalPrompt := False;
-  //  FWordApp := WordApplication(IDispatch(FApplicatioin));
+    FApplication.Options.SaveNormalPrompt := False;
+  //  FWordApp := WordApplication(IDispatch(FApplication));
   //  if not CheckWordApp then
   //  begin
   //    //
@@ -71,14 +71,16 @@ begin
     end;
   end;
   try
-    if not FUseActiveApp then
-      FApplicatioin.Quit(wdDoNotSaveChanges);
+    if not FUseActiveApp then begin
+      FApplication.NormalTemplate.Saved := True; // 为了不保存NormalTemplate
+      FApplication.Quit(wdDoNotSaveChanges);
+    end;
   except
     on e: Exception do
       OutputDebugString(PChar('TWordHelper.Destroy quit application error！' + e.Message));
   end;
 
-  FApplicatioin := Unassigned;
+  FApplication := Unassigned;
   FDocument := Unassigned;
   inherited;
 end;
@@ -86,31 +88,33 @@ end;
 procedure TWordHelper.NewFile(sFileName: String);
 begin
   FFileName := sFileName;
-  FApplicatioin.Documents.Add;
-//  FWordApp := WordApplication(IDispatch(FApplicatioin));
-  FDocument := FApplicatioin.ActiveDocument;
+  FApplication.Documents.Add;
+//  FWordApp := WordApplication(IDispatch(FApplication));
+  FDocument := FApplication.ActiveDocument;
 end;
 
 procedure TWordHelper.OpenFile(sFileName: String; readOnly: Boolean);
 begin
   FFileName := sFileName;
   if readOnly then
-    FApplicatioin.Documents.Open(sFileName, False, True)
+    FApplication.Documents.Open(sFileName, False, True)
   else
-    FApplicatioin.Documents.Open(sFileName);
-  FApplicatioin.Options.SaveNormalPrompt := False;
-//  FWordApp := WordApplication(IDispatch(FApplicatioin));
-  FDocument := FApplicatioin.ActiveDocument;
-  FWindow := FApplicatioin.ActiveWindow;
+    FApplication.Documents.Open(sFileName);
+  FApplication.Options.SaveNormalPrompt := False;
+//  FWordApp := WordApplication(IDispatch(FApplication));
+  FDocument := FApplication.ActiveDocument;
+  FWindow := FApplication.ActiveWindow;
   FOpend := True;
 end;
 
 procedure TWordHelper.CloseFile(bSave: Boolean);
 begin
   if bSave then begin
-    FDocument.SaveAs(FFileName);
+    FDocument.Save;
+//    FDocument.SaveAs(FFileName);
     FDocument.Close(wdDoNotSaveChanges);
   end else begin
+    FDocument.Saved := True;
     FDocument.Close(wdDoNotSaveChanges);
   end;
   FOpend := False;
@@ -122,7 +126,7 @@ var
   cmdCtrl: OleVariant;
 begin
   Result := False;
-  cmdBar := FApplicatioin.CommandBars.Item['Standard'];
+  cmdBar := FApplication.CommandBars.Item['Standard'];
   cmdCtrl := cmdBar.FindControl(msoControlButton, 1, tag, 1, true);
   // TODO 这个VarisNull检测常常不好使
   if not VarisNull(cmdCtrl) then

@@ -189,7 +189,7 @@ var
   sCommand: string;
 begin
   sSql := Trim(sSql);    
-  sTable := 'UnknownTable';
+  sTable := '';
   sCommand := fStrUtil.SubStringBetween(LowerCase(Trim(sSql)), '', ' ');
   if (sCommand = 'select')
      or (sCommand = 'delete') then

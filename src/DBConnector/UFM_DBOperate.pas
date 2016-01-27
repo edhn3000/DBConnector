@@ -229,14 +229,17 @@ const
 
   C_nPANELTOP_HEIGHT = 100;
 
+var
+  SearchTextMethod: TNotifyEvent;
+
 implementation
 
 {$R *.dfm}
 
 uses
   UF_Find, U_CommonFunc, U_UIUtil, U_Pub, U_Const,
-  U_fStrUtil, U_ini, U_SqlUtils,
-  UF_MAIN;
+  U_fStrUtil, U_ini, U_SqlUtils, U_ExportUtil,
+  U_WaitingForm;
 
 const
   C_nSQLHistory_MaxShowCount = 15;
@@ -297,7 +300,7 @@ begin
     gFindForm := TF_Find.Create(Self);
   with gFindForm do
   begin
-    PassControl(TWinControl(dbgrdData), '使用字段内容查找');
+    InitControl(TWinControl(dbgrdData), '使用字段内容查找');
     FormStyle := fsStayOnTop;
     Show;
   end;
@@ -305,11 +308,8 @@ end;
 
 procedure TFM_DBOperate.actExportExecute(Sender: TObject);
 const
-  C_sFilterStr = 'sql脚本*.sql|*.sql|文本文件*.txt|*.txt|Excel文件*.xls|*.xls';
-var
-  qryOld : TADOQuery;
-  dlgExport: TSaveDialog;
-  function FitFileName(sFileName: string):string;
+  C_sFilterStr = 'sql脚本*.sql|*.sql|文本文件*.txt|*.txt|Excel文件*.xls|*.xls|CSV文件*.csv|*.csv';
+  function FitFileName(sFileName: string; dlgExport: TSaveDialog):string;
   begin
     Result := sFileName;
     case dlgExport.FilterIndex of
@@ -328,14 +328,23 @@ var
         if '.xls' <> ExtractFileExt(Result) then
           Result := Result + '.xls';
       end;
+      4:
+      begin
+        if '.xls' <> ExtractFileExt(Result) then
+          Result := Result + '.csv';
+      end;
     end;
   end;
+var
+  sFileName: String;
+  qryOld : TADOQuery;
+  dlgExport: TSaveDialog;
+  waitForm: TWaitingForm;
 begin
   // 合法性判断
   if not Assigned(dbgrdData.DataSource.DataSet) then
     Exit;
-  with dbgrdData.DataSource.DataSet do
-  begin
+  with dbgrdData.DataSource.DataSet do begin
     if not Active then
       Exit;
 
@@ -343,29 +352,43 @@ begin
     if Fields.Count = 0 then
       Exit;
   end;
-
+                                
   actExport.Enabled := False;
-  dbgrdData.Columns.BeginUpdate;
+  dbgrdData.Columns.BeginUpdate;      
   dlgExport := TSaveDialog.Create(Self);
+  Application.ProcessMessages;
   try
     dlgExport.Filter := C_sFilterStr;
-    // TODO: 导出的内容不光是表   前缀要分析一下
-    dlgExport.FileName := C_FilePrefix_InsertTable + TSqlUtils.getTableNameBySQL(LastSQL);
+    // TODO: 导出的内容不光是表   前缀要分析一下  
+    sFileName := TSqlUtils.getTableNameBySQL(LastSQL);  
+    if sFileName = '' then
+      sFileName := '查询结果'
+    else    
+      dlgExport.FileName := C_FilePrefix_InsertTable + sFileName;
 
     dlgExport.InitialDir := GetAppRootPath;
     if not dlgExport.Execute then
       Exit;
 
+    sFileName := FitFileName(dlgExport.FileName, dlgExport);
     qryOld := TADOQuery(dbgrdData.DataSource.DataSet);
     dbgrdData.DataSource.DataSet := nil;                    // DBGrid的DataSet置空，这样导出的速度快
-    ExportQuery(qryOld, FitFileName(dlgExport.FileName));   // 做导出操作的方法
-    with TF_ExportResult.Create(Self) do
+
+    waitForm := TWaitingForm.Create(Self);
     try
-      ShowExportFile(FitFileName(dlgExport.FileName));
-      ShowModal;
+      waitForm.SetMesasge('正在导出...');
+      waitForm.Show;
+      ExportQuery(qryOld, sFileName);   // 做导出操作的方法
+      waitForm.Close;
     finally
-      Free;
+      waitForm.Free;
     end;
+
+    with TF_ExportResult.Create(Self) do begin
+      ShowExportFile(sFileName);
+      Show;
+    end;
+    
     dbgrdData.DataSource.DataSet := qryOld;                 // 还原DBGrid的DataSet
   finally
     dlgExport.Free;
@@ -383,20 +406,17 @@ var
 begin
   slstExport := TStringList.Create;
   try
-    if ExtractFileExt(AFileName) = '.xls' then
-    begin
-      UIUtil.ExportToExcel(AQry, AFileName);
-    end
-    else if ExtractFileExt(AFileName) = '.sql' then
-    begin
+    if SameText(ExtractFileExt(AFileName), '.csv') then begin
+      TExportUtil.ExportToCSV(AQry, AFileName);
+    end else if SameText(ExtractFileExt(AFileName), '.xls') then begin
+      TExportUtil.ExportToExcel(AQry, AFileName);
+    end else if SameText(ExtractFileExt(AFileName), '.sql') then begin
       DBConnect.ExportQuery(AQry, AFileName);
-    end
-    else
-    begin
+    end else begin  // txt
       with AQry do
       begin
 //        aiFieldLengths := UIUtil.GetFieldLengths(AQry);
-        UIUtil.FillExportQueryList(AQry, slstExport, '  ', '-');
+        TExportUtil.FillExportQueryList(AQry, slstExport, '  ', '-');
         slstExport.SaveToFile( AFileName );
       end;
     end;
@@ -764,7 +784,7 @@ begin
   if dsData.DataSet.Active then
   begin
     nRecCount := dsData.DataSet.RecordCount;
-    if nRecCount = GlobalParams.MaxRecord then
+    if (nRecCount > 0) and (nRecCount = GlobalParams.MaxRecord) then
       sFormat := '记录数：≥%d';  
     stat1.Panels[2].Text := Format('字段数：%d',[dsData.DataSet.FieldCount]);
   end
@@ -969,7 +989,8 @@ begin
     // 查找
     if (Key = Ord('f')) or (Key = Ord('F')) then
     begin
-      F_MAIN.btnSearchText.Click;
+      if Assigned(SearchTextMethod) then
+        SearchTextMethod(nil);
     end;
   end;
 end;

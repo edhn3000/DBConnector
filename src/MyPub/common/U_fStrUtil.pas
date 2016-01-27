@@ -23,21 +23,23 @@ type
     // 对数字使用数值大小比较，对字符串使用ComareText；s1大于s2返回1， s1小于s2返回-1，相等返回0；
     function CompareNumberText(s1, s2: string): Integer;
 
-    function CombineListToText(List: TStrings; sDelimiter: string;
+    function ListToText(List: TStrings; sDelimiter: string;
       bQuote: Boolean): string;
-    function Split(sText,sSeparator: String; ssParts: TStrings):TStrings;
+    function Split(sText,sSeparator: String; ssParts: TStrings):TStrings;overload;
+    function Split(sText: String; separators: array of string; ssParts: TStrings):TStrings;overload;
+    procedure SplitByLength(sText: String; len: Integer; ssParts: TStrings);
     // 拆分字符串的时候越过指定类型的括号中的内容，用于字符串嵌套的情况
     function SplitEscapeBracket(sText,sSeparator,sBracketLeft, sBracketRight: String;
-      ssParts: TStrings):TStrings;   
+      ssParts: TStrings):TStrings;
     function SplitEscapeQuote(sText,sSeparator,sQuote: String;sEscapeChar: string;
       ssParts: TStrings):TStrings;
     function RebuildDelimitatedText(sText, sOldDelimiter, sNewDelimiter: string;
       bQuote: Boolean): string;
     procedure StrToKeyValue(AStr, sSeparator:string; var Key, Value: string);
 
-    // 在字符串中查找子串时越过指定类型的括号中的内容，用于字符串嵌套的情况                                   
+    // 在字符串中查找子串时越过指定类型的括号中的内容，用于字符串嵌套的情况
     function PosEscapeBracket(sSub, S: String; sBracketLeft, sBracketRight: string;
-      nFrom: Integer = 1; ignoreCase: Boolean = True): Integer;                                    
+      nFrom: Integer = 1; ignoreCase: Boolean = True): Integer;
     function PosEscapeQuote(sSub, S: String; sQuote: string;sEscapeChar: string;
       nFrom: Integer = 1; ignoreCase: Boolean = True): Integer;
     {*
@@ -58,14 +60,14 @@ type
       nFrom: Integer = 1; ignoreCase: Boolean = True): Integer;
     function PosMatchCount(sSub, S: String; nFrom: Integer = 1;
          ignoreCase: Boolean = True): Integer;
-         
+
     // 从后向前查找，没找到返回0
     function PosLast(sSub, S: String; nFrom: Integer = 0;
         ignoreCase: Boolean = True): Integer;
     function PosEndsText(sSub, S: string; var nPos:Integer;
       ignoreCase: Boolean = True): Boolean;
     function ParseMatchedBracket(nLeftBracketIndex:Integer; Astr: string;
-        sBracketLeft: string = '('; sBracketRight: string = ')'): Integer; 
+        sBracketLeft: string = '('; sBracketRight: string = ')'): Integer;
     function ParseMatchedQuote(nLeftQuoteIndex:Integer; Astr: string;
         sQuote: string = ''''; sEscapeChar: string = '\'): Integer;
 
@@ -77,7 +79,7 @@ type
     }
     function PosArrayFrom(S: string; Subs: array of string;
       var nMatchIndex: Integer; nFrom: Integer = 1;
-      ignoreCase: Boolean = True):Integer;overload; 
+      ignoreCase: Boolean = True):Integer;overload;
     function PosArrayFrom(S: string; Subs: TStrings;
       var nMatchIndex: Integer; nFrom: Integer = 1;
       ignoreCase: Boolean = True):Integer;overload;
@@ -87,7 +89,7 @@ type
     function PosArrayFromEscapeQuote(S: string; Subs: array of string;
       var nMatchIndex: Integer; sQuote: string; sEscapeChar: string;
       nFrom: Integer = 1;ignoreCase: Boolean = True):Integer;
-      
+
     function SubStringBetween(S, sBegin, sEnd: string;
       ignoreCase: Boolean = True): string;
     function WildcardCompareText(const sSub: string; const S: string;
@@ -96,7 +98,7 @@ type
     // 判断一个位置是否在引号中
     function IsPosInQuotedStr(sMain: string; nSubPos: Integer;
       sQuoteStart, sQuoteEnd: string): Boolean;
-      
+
     // 比较，完全相同返回0，否则返回有差别的index
     function CompareTextAtIndex(s1, s2: string): Integer;
 
@@ -110,11 +112,11 @@ var
   fStrUtil: TfStrUtil;
 
 implementation
-     
+
 uses
   SysUtils, Math;
 
-{ TfStrUtil }     
+{ TfStrUtil }
 
 function TfStrUtil.IsNumber(S: string):Boolean;
 var
@@ -132,7 +134,7 @@ var
 begin
   Val(S, nNum, nCode);
   Result := (nCode = 0) and (nNum = nNum);
-end;   
+end;
 
 function TfStrUtil.CompareNumberText(s1, s2: string):Integer;
 var
@@ -175,8 +177,46 @@ begin
 
   if sRemain <> '' then
     Result.Add(sRemain);
-end; 
- 
+end;
+
+function TfStrUtil.Split(sText: String; separators: array of string;
+  ssParts: TStrings): TStrings;
+var
+  nPos, nMatch: Integer;
+  sPart, sRemain: String;
+begin
+  Result := ssParts;
+  if Result = nil then
+    Result := TStringList.Create;
+  Result.Clear;
+  sRemain:= sText;
+  nPos:= PosArrayFrom(sText, separators, nMatch, 1);
+
+  while nPos > 0 do
+  begin
+    sPart:= Copy(sRemain, 1, nPos- 1);
+    if Trim(sPart) <> '' then
+      Result.Add(sPart);
+    sRemain:= Copy(sRemain, nPos+ Length(separators[nMatch]), Length(sRemain)- nPos+ 1);
+    nPos:= PosArrayFrom(sRemain, separators, nMatch, 1);
+  end;
+
+  if sRemain <> '' then
+    Result.Add(sRemain);
+end;
+
+procedure TfStrUtil.SplitByLength(sText: String; len: Integer;
+  ssParts: TStrings);
+var
+  sRemain: String;
+begin
+  sRemain := sText;
+  while sRemain <> '' do begin
+    ssParts.Add(Copy(sRemain, 1, len));
+    sRemain := Copy(sRemain, len+1, Maxint);
+  end;
+end;
+
 function TfStrUtil.SplitEscapeBracket(sText,sSeparator,sBracketLeft, sBracketRight: String;
   ssParts: TStrings):TStrings;
 var
@@ -201,7 +241,7 @@ begin
 
   if sRemain <> '' then
     Result.Add(sRemain);
-end;    
+end;
 
 function TfStrUtil.SplitEscapeQuote(sText, sSeparator, sQuote: String; sEscapeChar: string;
   ssParts: TStrings): TStrings;
@@ -251,7 +291,7 @@ begin
       nIndexMain := ParseMatchedBracket(nIndexMain, S, sBracketLeft,
         sBracketRight) + Length(sBracketRight);
     end;
-    
+
     if not ((ignoreCase and SameText(sSub[nIndexSub], S[nIndexMain]))
             or (sSub[nIndexSub]=S[nIndexMain])) then
     begin
@@ -283,7 +323,7 @@ begin
       end;
     end;
   end;
-end;   
+end;
 
 function TfStrUtil.PosEscapeQuote(sSub, S, sQuote, sEscapeChar: string; nFrom: Integer;
   ignoreCase: Boolean): Integer;
@@ -313,7 +353,7 @@ begin
       end;
       nIndexMain := nIndexMain + Length(sQuote);
     end;
-    
+
     if not ((ignoreCase and SameText(sSub[nIndexSub], S[nIndexMain]))
             or (sSub[nIndexSub]=S[nIndexMain])) then
     begin
@@ -394,7 +434,7 @@ begin
       end;
     end;
   end;
-end;  
+end;
 
 function TfStrUtil.PosBack(sSub, S: String; nFrom: Integer;
   ignoreCase: Boolean): Integer;
@@ -477,7 +517,7 @@ begin
     // 第一次无匹配，从传入位置找；以后每次查找的位置为上次匹配的位置+1
     if bFind then
       Result := PosFrom(sSub, sFull, Result+1, ignoreCase)
-    else                                                  
+    else
       Result := PosFrom(sSub, sFull, Result, ignoreCase);
     bFind := Result <> 0;
     if bFind then
@@ -516,7 +556,7 @@ begin
 
       while (nIndexSub<= Length(sSub))
             and ((ignoreCase and SameText(sSub[nIndexSub], S[nIndexMain]))
-                 or (sSub[nIndexSub]=S[nIndexMain])) do      
+                 or (sSub[nIndexSub]=S[nIndexMain])) do
       begin
         Inc(nIndexMain);
         Inc(nIndexSub);
@@ -531,14 +571,14 @@ begin
       nIndexSub := 1;
     end;
   end;
-end;   
+end;
 
 function TfStrUtil.PosArrayFrom(S: string; Subs: array of string;
   var nMatchIndex: Integer; nFrom: Integer; ignoreCase: Boolean): Integer;
 var
-  nPos, i: Integer; 
+  nPos, i: Integer;
   nLastPos: Integer;
-begin  
+begin
   nLastPos := 0;
   for i := Low(Subs) to High(Subs) do
   begin
@@ -551,17 +591,17 @@ begin
     if nLastPos = 1 then  // 第一位置提前结束
     begin
       Break;
-    end;  
+    end;
   end;
   Result := nLastPos;
-end;  
+end;
 
 function TfStrUtil.PosArrayFrom(S: string; Subs: TStrings;
   var nMatchIndex: Integer; nFrom: Integer; ignoreCase: Boolean): Integer;
 var
-  nPos, i: Integer; 
+  nPos, i: Integer;
   nLastPos: Integer;
-begin  
+begin
   nLastPos := 0;
   for i := 0 to Subs.Count - 1 do
   begin
@@ -574,7 +614,7 @@ begin
     if nLastPos = 1 then  // 第一位置提前结束
     begin
       Break;
-    end;  
+    end;
   end;
   Result := nLastPos;
 end;
@@ -583,9 +623,9 @@ function TfStrUtil.PosArrayFromEscapeBracket(S: string;
   Subs: array of string; var nMatchIndex: Integer; sBracketLeft,
   sBracketRight: string; nFrom: Integer; ignoreCase: Boolean): Integer;
 var
-  nPos, i: Integer; 
+  nPos, i: Integer;
   nLastPos: Integer;
-begin  
+begin
   nLastPos := 0;
   for i := Low(Subs) to High(Subs) do
   begin
@@ -599,7 +639,7 @@ begin
     if nLastPos = 1 then  // 第一位置提前结束
     begin
       Break;
-    end;  
+    end;
   end;
   Result := nLastPos;
 end;
@@ -608,9 +648,9 @@ function TfStrUtil.PosArrayFromEscapeQuote(S: string;
   Subs: array of string; var nMatchIndex: Integer; sQuote: string;
   sEscapeChar: string; nFrom: Integer; ignoreCase: Boolean): Integer;
 var
-  nPos, i: Integer; 
+  nPos, i: Integer;
   nLastPos: Integer;
-begin  
+begin
   nLastPos := 0;
   for i := Low(Subs) to High(Subs) do
   begin
@@ -624,7 +664,7 @@ begin
     if nLastPos = 1 then  // 第一位置提前结束
     begin
       Break;
-    end;  
+    end;
   end;
   Result := nLastPos;
 end;
@@ -726,9 +766,9 @@ end;
 //    Result := SameText(s1, s2)
 //  else
 //    Result := s1=s2;
-//end;    
+//end;
 
-function TfStrUtil.CombineListToText(List: TStrings; sDelimiter: string;
+function TfStrUtil.ListToText(List: TStrings; sDelimiter: string;
   bQuote: Boolean): string;
 var
   i: Integer;
@@ -753,7 +793,7 @@ begin
   slst:= TStringList.Create;
   try
     Split(sText, sOldDelimiter, slst);
-    Result := CombineListToText(slst,sNewDelimiter, bQuote);
+    Result := ListToText(slst,sNewDelimiter, bQuote);
   finally
     slst.Free;
   end;   
@@ -990,6 +1030,7 @@ begin
     mr.Free;
   end;
 end;
+
 //
 //function TfStrUtil.GetSubStrWithRegx(sExpress, S: string): string;
 //var

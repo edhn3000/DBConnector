@@ -5,7 +5,7 @@
  * @version 1.0
  * <p>Description: 导出结果 </p>
  *}
- unit UF_ExportResult;
+unit UF_ExportResult;
 
 interface
 
@@ -14,6 +14,7 @@ uses
   Dialogs, StdCtrls, ExtCtrls, ShellApi;
 
 type
+  TOpenWithEditor = procedure (AFileName: string) of Object;
   TF_ExportResult = class(TForm)
     btnOpenWidhEditor: TButton;
     lbl1: TLabel;
@@ -26,6 +27,7 @@ type
     procedure FormShow(Sender: TObject);
     procedure btnOpenClick(Sender: TObject);
     procedure btnOpenDirClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
     FsExportedFile: string;
@@ -34,9 +36,11 @@ type
     procedure ShowExportFile(sFileName: string);
   end;
 
-implementation
 
-uses UF_MAIN;
+var
+  OpenWithEditorMethod: TOpenWithEditor;
+
+implementation
 
 {$R *.dfm}
 
@@ -49,7 +53,8 @@ end;
 
 procedure TF_ExportResult.btnOpenWidhEditorClick(Sender: TObject);
 begin
-  F_MAIN.OpenWithEditor(FsExportedFile);
+  if Assigned(OpenWithEditorMethod) then
+    OpenWithEditorMethod(FsExportedFile);
   Close;
 end;
 
@@ -57,6 +62,11 @@ procedure TF_ExportResult.ShowExportFile(sFileName: string);
 begin
   FsExportedFile := sFileName;
   edtExportFile.Text := sFileName;
+end;
+
+procedure TF_ExportResult.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  Action := caFree;
 end;
 
 procedure TF_ExportResult.FormShow(Sender: TObject);

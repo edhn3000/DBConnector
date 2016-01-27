@@ -10,7 +10,7 @@
     gFindForm := TF_Find.Create( Self );
   with gFindForm do
   begin
-    PassControl( TWinControl( 控件对象 ) );
+    InitControl( TWinControl( 控件对象 ) );
     FormStyle := fsStayOnTop;
     Show;
   end;
@@ -25,6 +25,7 @@ uses
 
 type
   TFindCallBack = procedure(nLine, nIndex, nCount: Integer) of object;
+  TTreeCompareMethod = function(Node:TTreeNode; findStr: String): Integer of object;
   TF_Find = class(TForm)
     lbl1: TLabel;
     edtKeyWord: TEdit;
@@ -45,32 +46,47 @@ type
     FControl: TWinControl;
     FStrs: TStrings;   
     FFindCallBack: TFindCallBack;
+    FTreeCompareMethod: TTreeCompareMethod;
     // 查找，参数表示是否是查找下一个操作
     //procedure DoFindAtTree( mmo: TMemo; bNext: Boolean );
     function DoFind(bNext: Boolean): Boolean;
-  public          
-    LastFindLine: Integer;
-    LastFindIndex: Integer;
+  protected
+    function FindIt(const sSub, S: string; nFrom: Integer): Integer;
+
+  public
+    LastFindLine: Integer;   // 上次找到的行
+    LastFindIndex: Integer;  // 上次找到的索引
+
+    CaseSensitive: Boolean;  // 大小写敏感
+    WholeWordMatch: Boolean; // 全字匹配
+    MatchAtFirst: Boolean;   // 从头匹配
+
+    // 树节点的比较方法，可以用于高级查找，如查找节点关联对象某个属性值
+    property TreeCompareMethod: TTreeCompareMethod read FTreeCompareMethod write FTreeCompareMethod;
 
     { Public declarations }
-    procedure PassControl(var ctrl: TWinControl;
+    procedure InitControl(var ctrl: TWinControl;
       CaptionDef: string = '');
-    procedure PassStrings(strs: TStrings; findcallback: TFindCallBack; CaptionDef: string = '');
+    procedure InitStrings(strs: TStrings; findcallback: TFindCallBack; CaptionDef: string = '');
 
     // 检查是否已找到
-   // function FindIt(const sSub, S: string; CaseSensitive, WholeWordMatch: Boolean): Integer;
-    function DoFindAtTree(tvw: TTreeView;sSearchText: string; bCaseSensitive,
-        bWholeWordMatch, bMatchAtFirst, bNext: Boolean):Boolean;
-    function DoFindAtList(lvw: TListView;sSearchText: string; bCaseSensitive,
-        bWholeWordMatch, bMatchAtFirst, bNext: Boolean):Boolean;
-    function DoFindAtGrid(dbgrd: TCustomDBGrid;sSearchText: string; bCaseSensitive,
-        bWholeWordMatch, bMatchAtFirst, bNext: Boolean):Boolean;
+    // Tree
+    function DoFindAtTreeNode(nodeStart: TTreeNode; sSearchText: string; bNext: Boolean): TTreeNode;overload;
+    function DoFindAtTreeNode(tv: TTreeView; nodeStart: TTreeNode;sSearchText: string; bNext: Boolean):TTreeNode;overload;
+    function DoFindTreePath(tv: TTreeView; path: String; separator: String = '/'): TTreeNode;
+    function DoFindAtTree(tvw: TTreeView;sSearchText: string; bNext: Boolean):Boolean;
+    // List
+    function DoFindAtList(lvw: TListView;sSearchText: string; bNext: Boolean):Boolean;
+
+    // Grid
+    function DoFindAtGrid(dbgrd: TCustomDBGrid;sSearchText: string; bNext: Boolean):Boolean;
+
+    // Text
 //    function DoFindAtEditor(editor: TCustomEdit;sSearchText: string; bCaseSensitive,
 //        bWholeWordMatch, bMatchAtFirst, bNext: Boolean):Boolean;
-    function DoFindAtStrings(strs: TStrings;sSearchText: string; bCaseSensitive,
-        bWholeWordMatch, bMatchAtFirst, bNext: Boolean; callback: TFindCallBack):Boolean;
+    function DoFindAtStrings(strs: TStrings;sSearchText: string; bNext: Boolean;
+       callback: TFindCallBack):Boolean;
   end;
-                
 
 
 var
@@ -83,20 +99,22 @@ implementation
 uses
   U_CommonFunc, U_fStrUtil;
 
-function FindIt(const sSub, S: string; nFrom: Integer; CaseSensitive,
-  WholeWordMatch, MatchAtFirst: Boolean): Integer;
+{ TF_Find }
+
+function TF_Find.FindIt(const sSub, S: string; nFrom: Integer): Integer;
 var
+  sFindMain: String;
   nPos: Integer;
   nWildcardIndex: Integer;
   nMatchIndex: Integer;
 begin
   // 大小写敏感处理
   nPos := fStrUtil.PosFrom(sSub, S, nFrom, not CaseSensitive);
+  sFindMain := Copy(S, nFrom, Length(S));
   // 检查是否需要通配符比较
   nWildcardIndex := 0;
-  if 0 < fStrUtil.PosArrayFrom(sSub, ['*', '?'], nMatchIndex, 1, not CaseSensitive) then
-    nWildcardIndex := fStrUtil.WildcardCompareText(sSub,
-      Copy(S, nFrom, Length(S)), not CaseSensitive);
+  if fStrUtil.PosArrayFrom(sSub, ['*', '?'], nMatchIndex, 1, not CaseSensitive) > 0 then
+    nWildcardIndex := fStrUtil.WildcardCompareText(sSub, sFindMain, not CaseSensitive);
 
   // 通配符匹配通过 通配符不受全字匹配选项的影响  并且就相当于从头匹配了
   if nWildcardIndex > 0 then
@@ -111,15 +129,13 @@ begin
     else
       nPos := 0;
   end;
-  
+
   Result := nPos;
   if (nPos <> 1) and MatchAtFirst then
     Result := 0;
 end;
 
-{ TF_Find }
-
-procedure TF_Find.PassControl(var ctrl: TWinControl;
+procedure TF_Find.InitControl(var ctrl: TWinControl;
   CaptionDef: string);
 begin
   FControl := ctrl;
@@ -137,9 +153,9 @@ begin
       Caption := '在文本中查找'
     else if FControl is TCustomDBGrid then
       Caption := '在表格中查找';
-end;  
+end;
 
-procedure TF_Find.PassStrings(strs: TStrings; findcallback: TFindCallBack; CaptionDef: string);
+procedure TF_Find.InitStrings(strs: TStrings; findcallback: TFindCallBack; CaptionDef: string);
 begin
   FStrs := strs;
   FFindCallBack := findcallback;
@@ -157,12 +173,216 @@ begin
       Caption := '在表格中查找';
 end;
 
-function TF_Find.DoFindAtTree(tvw: TTreeView;sSearchText: string; bCaseSensitive,
-    bWholeWordMatch, bMatchAtFirst, bNext: Boolean):Boolean;
+function TF_Find.DoFindAtTreeNode(nodeStart: TTreeNode; sSearchText: string;
+  bNext: Boolean): TTreeNode;
+  function GetRootNode(node: TTreeNode): TTreeNode;
+  begin
+    while node.Parent <> nil do begin
+      node := node.Parent;
+    end;
+    while node.getPrevSibling <> nil do begin
+      node := node.getPrevSibling;
+    end;
+    Result := node;
+  end;
+  function ReachLastNode(node: TTreeNode): Boolean;
+  begin
+    Result := False;
+    // 无父无子无邻居
+    if (node.Parent = nil) and (node.getNextSibling = nil) and (node.getFirstChild = nil) then begin
+      Result := True;
+      Exit;
+    end;
+
+    // 根节点的下一层，自身无邻居，其父无邻居
+    if (node.Parent <> nil) and (node.Parent.Parent = nil)
+       and (node.getNextSibling = nil)
+       and (node.getFirstChild = nil)
+       and (node.Parent.getNextSibling = nil) then begin
+      Result := True;
+      Exit;
+    end;
+  end;
 var
   sWholeText: string;
   bFind: Boolean;
-  nodeStart: TTreeNode;
+  node, parentNode: TTreeNode;
+  loopTree: Integer;
+begin
+  node := nodeStart;
+  Result := nil;
+  loopTree := 0;
+  while Assigned(node) do
+  begin
+    Application.ProcessMessages;
+
+    sWholeText := node.Text;
+    if Assigned(FTreeCompareMethod) then
+      bFind := FTreeCompareMethod(node, sSearchText) = 0
+    else
+      bFind := Pos(sSearchText, sWholeText) > 0;
+//    bFind := FindIt(sSearchText, sWholeText, 1,
+//                    bCaseSensitive, bWholeWordMatch, bMatchAtFirst) > 0;
+
+    if bFind and
+       not (bNext and node.Selected) then
+    begin
+      Result := node;
+      Break;
+    end;
+
+    if (loopTree >= 1) and (node = nodeStart) then begin
+      // 到结尾再次从头查找时又到了开始节点，未找到，结束
+      Result := nil;
+      Break;
+    end;
+
+    // 没找到时，查找一下个
+    if node.getFirstChild <> nil then         // 先看子节点
+      node := node.getFirstChild
+    else if node.getNextSibling <> nil then   // 没有子节点，看下一个邻居
+      node := node.getNextSibling
+    else if node.Parent <> nil then begin     // 没有子节点和邻居，有父节点，看父节点邻居，可能要向上看多层
+      // 找到第一个有邻居的父节点，取得之
+      parentNode := node.Parent;
+      node := nil;
+      while parentNode <> nil do begin
+        if parentNode.getNextSibling <> nil then begin
+          node := parentNode.getNextSibling;
+          Break;
+        end;
+        if (parentNode.Parent = nil) then
+          Break;
+        parentNode := parentNode.Parent;
+      end;
+      if (node = nil) then begin
+        node := GetRootNode(parentNode);
+        Inc(loopTree);
+        Continue;
+      end;
+
+      // 看父节点邻居时，也可也能会一直看到最后的节点，有如下几种情况
+      if ReachLastNode(node) then begin
+         node := GetRootNode(node);
+         Inc(loopTree);
+      end;
+    end else if ReachLastNode(node) then begin
+      node := GetRootNode(node);
+      Inc(loopTree);
+    end;
+  end;
+end;
+
+function TF_Find.DoFindAtTreeNode(tv: TTreeView; nodeStart: TTreeNode; sSearchText: string; bNext: Boolean): TTreeNode;
+var
+  sWholeText, sSearchText_low: string;
+  bFind: Boolean;
+  node, parent: TTreeNode;
+  loopTree: Integer;
+begin
+  node := nodeStart;
+  Result := nil;
+  loopTree := 0;
+  sSearchText_low := LowerCase(sSearchText);
+  while Assigned(node) do
+  begin
+    Application.ProcessMessages;
+
+    sWholeText := LowerCase(node.Text);
+    if Assigned(FTreeCompareMethod) then
+      bFind := FTreeCompareMethod(node, sSearchText) = 0
+    else
+      bFind := Pos(sSearchText_low, sWholeText) > 0;
+
+    if bFind then
+    begin
+      Result := node;
+      Break;
+    end;
+
+    // 当前节点不匹配，则查找一下个,
+    // 按照子节点->后续邻居节点->父节点的后续邻居节点的顺序，如果还找不到，再从头开始找
+    if node.getFirstChild <> nil then
+      node := node.getFirstChild
+    else if node.getNextSibling <> nil then
+      node := node.getNextSibling
+    else
+    begin
+      //递归查找上级节点的后续邻居节点
+      parent := node.Parent;
+      node := nil;
+      while parent <> nil do
+      begin
+        if parent.getNextSibling <> nil then
+        begin
+          node := parent.getNextSibling;
+          Break;
+        end;
+
+        parent := parent.Parent;
+      end;
+    end;
+
+    if (loopTree = 0) and (node = nil) then
+    begin
+      loopTree := 1;
+      node := tv.Items.GetFirstNode;
+    end;
+
+    if (loopTree >= 1) and (node = nodeStart) then
+    begin
+      // 到结尾再次从头查找时又到了开始节点，未找到，结束
+      Result := nil;
+      Break;
+    end;
+  end;
+end;
+
+function TF_Find.DoFindTreePath(tv: TTreeView; path: String; separator: String): TTreeNode;
+var
+  pathList: TStrings;
+  i: Integer;
+  node, child: TTreeNode;
+begin
+  Result := nil;
+  pathList := TStringList.Create;
+  try
+    fStrUtil.Split(path, separator, pathList);
+    if pathList.Count = 0 then
+      Exit;
+
+    node := tv.Items.GetFirstNode;
+    for i := 0 to pathList.Count - 1 do
+    begin
+      if (pathList[i] = tv.Items.GetFirstNode.Text) then
+        Continue;
+
+      child := node.getFirstChild;
+      while child<>nil do
+      begin
+        if SameStr(child.Text,pathList[i]) then
+        begin
+          node := child;
+          Break;
+        end;
+        child := child.getNextSibling;
+      end;
+      if child = nil then
+      begin
+        Break;
+      end;
+    end;
+    Result := Node;
+  finally
+    pathList.Free;
+  end;
+end;
+
+function TF_Find.DoFindAtTree(tvw: TTreeView;sSearchText: string; bNext: Boolean):Boolean;
+var
+  sWholeText: string;
+  bFind: Boolean;
+  nodeStart, node: TTreeNode;
 begin
   Result := False;
   if sSearchText = '' then Exit;
@@ -172,55 +392,15 @@ begin
   if nodeStart = nil then
     nodeStart := tvw.Items.GetFirstNode;
   if not Assigned(nodeStart) then Exit;
-
-  bFind := False;
-  while True do
+  node := DoFindAtTreeNode(tvw, nodeStart, sSearchText, bNext);
+  if Assigned(node) and (tvw.Selected <> node) then
   begin
-    Application.ProcessMessages;
-    
-    sWholeText := nodeStart.Text;
-
-    bFind := FindIt(sSearchText, sWholeText, 1,
-                    bCaseSensitive, bWholeWordMatch, bMatchAtFirst) > 0;
-
-    if bFind and
-       not (bNext and (tvw.Selected = nodeStart)) then
-    begin
-      if tvw.Selected <> nodeStart then  // 避免重复调用 DrawFocusRect
-      begin
-        tvw.Selected := nodeStart;
-        tvw.Canvas.DrawFocusRect(tvw.Selected.DisplayRect(False));
-      end;
-      Break;
-    end
-    else if nodeStart.getFirstChild <> nil then
-      nodeStart := nodeStart.getFirstChild
-    else if nodeStart.getNextSibling <> nil then
-      nodeStart := nodeStart.getNextSibling
-    else if nodeStart.Parent <> nil then
-    begin
-      nodeStart := nodeStart.Parent;
-      if nodeStart.getNextSibling <> nil then
-        nodeStart := nodeStart.getNextSibling
-      else
-        nodeStart := nil;
-    end
-    else
-      Break;
+    tvw.Selected := node;
+    tvw.Canvas.DrawFocusRect(tvw.Selected.DisplayRect(False));
   end;
-  Result := bFind;
-
-  if bNext and (not bFind) then
-    if FormatMsgBox( '已找到尾部，是否从头开始找', mbsQuestion) = IDYES then
-    begin
-      tvw.Selected := nil;
-      Result := DoFindAtTree(tvw, sSearchText, bCaseSensitive, bWholeWordMatch,
-        bMatchAtFirst, False);
-    end;
 end;
 
-function TF_Find.DoFindAtList(lvw: TListView;sSearchText: string; bCaseSensitive,
-    bWholeWordMatch, bMatchAtFirst, bNext: Boolean):Boolean;
+function TF_Find.DoFindAtList(lvw: TListView;sSearchText: string; bNext: Boolean):Boolean;
 var
   i, j, nStart: Integer;
   sWholeText: string;
@@ -242,8 +422,7 @@ begin
     for j := 1 to lvw.Items[i].SubItems.Count - 1 do
       sWholeText := sWholeText + #13 + lvw.Items[i].SubItems[j];
 
-    bFind := FindIt(sSearchText, sWholeText,1,
-                    bCaseSensitive, bWholeWordMatch, bMatchAtFirst) > 0;
+    bFind := FindIt(sSearchText, sWholeText,1) > 0;
 
     if bFind then
     begin
@@ -257,12 +436,10 @@ begin
   if bNext and (not bFind) then
     if FormatMsgBox('已找到尾部，是否从头开始找', mbsQuestion) = IDYES
       then
-      Result := DoFindAtList(lvw, sSearchText, bCaseSensitive, bWholeWordMatch,
-        bMatchAtFirst, False);
+      Result := DoFindAtList(lvw, sSearchText, False);
 end;
 
-function TF_Find.DoFindAtGrid(dbgrd: TCustomDBGrid;sSearchText: string; bCaseSensitive,
-    bWholeWordMatch, bMatchAtFirst, bNext: Boolean):Boolean;
+function TF_Find.DoFindAtGrid(dbgrd: TCustomDBGrid;sSearchText: string; bNext: Boolean):Boolean;
 var
   i, nStartRow, nStartCol: Integer;
   sWholeText: string;
@@ -292,8 +469,7 @@ begin
     begin
       sWholeText := qry.Fields[i].AsString;
 
-      bFind := FindIt(sSearchText, sWholeText, 1,
-                      bCaseSensitive, bWholeWordMatch, bMatchAtFirst) > 0;
+      bFind := FindIt(sSearchText, sWholeText, 1) > 0;
 
       if bFind then
       begin
@@ -307,8 +483,7 @@ begin
   Result := bFind;
   if bNext and (not bFind) then
     if IDYES = FormatMsgBox('已找到尾部，是否从头开始找', mbsQuestion) then
-      Result := DoFindAtGrid(dbgrd, sSearchText, bCaseSensitive, bWholeWordMatch,
-        bMatchAtFirst, False);
+      Result := DoFindAtGrid(dbgrd, sSearchText, False);
 end;
 
     
@@ -318,8 +493,7 @@ end;
 //  //TODO
 //end;  
 
-function TF_Find.DoFindAtStrings(strs: TStrings;sSearchText: string; bCaseSensitive,
-  bWholeWordMatch, bMatchAtFirst, bNext: Boolean; callback: TFindCallBack):Boolean;
+function TF_Find.DoFindAtStrings(strs: TStrings;sSearchText: string; bNext: Boolean; callback: TFindCallBack):Boolean;
 var
   i, nStartLine, nStartIndex: Integer;
   sWholeText: string;
@@ -348,11 +522,9 @@ begin
     sWholeText := strs[i];
     // 在上次查找过的行查找的时候，就从指定索引开始，否则从第一个索引开始
     if bNext and (i=nStartLine) then
-      nFindIndex := FindIt(sSearchText, strs[i], nStartIndex,
-               bCaseSensitive, bWholeWordMatch, bMatchAtFirst)
+      nFindIndex := FindIt(sSearchText, strs[i], nStartIndex)
     else
-      nFindIndex := FindIt(sSearchText, strs[i], 1,
-               bCaseSensitive, bWholeWordMatch, bMatchAtFirst);
+      nFindIndex := FindIt(sSearchText, strs[i], 1);
 
     bFind := nFindIndex > 0;
 
@@ -371,8 +543,7 @@ begin
   Result := bFind;
   if bNext and (not bFind) then
     if IDYES = FormatMsgBox('已找到尾部，是否从头开始找', mbsQuestion) then
-      Result := DoFindAtStrings(strs, sSearchText, bCaseSensitive, bWholeWordMatch,
-          bMatchAtFirst, False, callback);
+      Result := DoFindAtStrings(strs, sSearchText, False, callback);
 end;
 
 function TF_Find.DoFind(bNext: Boolean): Boolean;
@@ -383,21 +554,21 @@ begin
     MessageBox(Handle, '关键字不能为空！', '提示', MB_OK + MB_ICONINFORMATION);
     Exit;
   end;
-  if FStrs <> nil then
-    Result := DoFindAtStrings(FStrs, edtKeyWord.Text, chkCaseSensitive.Checked,
-        chkWholeWordMatch.Checked, chkMatchAtFirst.Checked, bNext, FFindCallBack)  
+  CaseSensitive := chkCaseSensitive.Checked;
+  WholeWordMatch := chkWholeWordMatch.Checked;
+  MatchAtFirst := chkMatchAtFirst.Checked;
+  if FStrs <> nil then begin
+    Result := DoFindAtStrings(FStrs, edtKeyWord.Text, bNext, FFindCallBack)
 //  else if FControl is TCustomEdit then
 //    Result := DoFindAtEditor(TEdit(FControl), edtKeyWord.Text, chkCaseSensitive.Checked,
 //        chkWholeWordMatch.Checked, chkMatchAtFirst.Checked, bNext)
-  else if FControl is TTreeView then      // 在treeview中查找
-    Result := DoFindAtTree(TTreeView(FControl), edtKeyWord.Text, chkCaseSensitive.Checked,
-        chkWholeWordMatch.Checked, chkMatchAtFirst.Checked, bNext)
-  else if FControl is TListView then     // 在listview中查找
-    Result := DoFindAtList(TListView(FControl), edtKeyWord.Text, chkCaseSensitive.Checked,
-        chkWholeWordMatch.Checked, chkMatchAtFirst.Checked, bNext)
-  else if FControl is TDBGrid then       //
-    Result := DoFindAtGrid(TDBGrid(FControl), edtKeyWord.Text, chkCaseSensitive.Checked,
-        chkWholeWordMatch.Checked, chkMatchAtFirst.Checked, bNext);
+  end else if FControl is TTreeView then begin      // 在treeview中查找
+    Result := DoFindAtTree(TTreeView(FControl), edtKeyWord.Text, bNext)
+  end else if FControl is TListView then begin    // 在listview中查找
+    Result := DoFindAtList(TListView(FControl), edtKeyWord.Text, bNext)
+  end else if FControl is TDBGrid then begin      //
+    Result := DoFindAtGrid(TDBGrid(FControl), edtKeyWord.Text, bNext);
+  end;
 end;
 
 procedure TF_Find.btnFindClick(Sender: TObject);

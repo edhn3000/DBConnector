@@ -28,5 +28,7 @@
     <Transaction>2015/06/26 15:08:10.669.pas,E:\MyProgram\Delphi\MyPub\Log\U_LogManager.pas=</Transaction>
     <Transaction>2015/11/19 21:23:41.847.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\MyPub\thread\U_ThreadPool.pas</Transaction>
     <Transaction>2015/11/19 21:23:51.006.pas,E:\MyProgram\Delphi\MyPub\U_ThreadUtil.pas=E:\MyProgram\Delphi\MyPub\thread\U_ThreadUtil.pas</Transaction>
+    <Transaction>2016/01/27 15:35:47.219.pas,E:\MyProgram\Delphi\DBConnector\Unit1.pas=E:\MyProgram\Delphi\MyPub\IO\U_Exportor.pas</Transaction>
+    <Transaction>2016/01/27 15:36:03.528.pas,E:\MyProgram\Delphi\MyPub\IO\U_Exportor.pas=E:\MyProgram\Delphi\MyPub\IO\U_ExportUtil.pas</Transaction>
   </Transactions>
 </BorlandProject>

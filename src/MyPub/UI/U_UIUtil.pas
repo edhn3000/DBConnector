@@ -20,9 +20,9 @@ const
   C_sSortFlag_Desc = '▼';
 
 type
-{ TUIUtil }
   TAryInt = array of Integer;
 
+  { TUIUtil }
   TUIUtil = class
   private
     FabColSortFlags: array of Boolean;
@@ -50,9 +50,7 @@ type
     procedure AjustListItemLengths(Aslst: TStrings; AItemSeparator: string;
         NewSeparator: string; aiLengths: TAryInt; nTitlePosition: Integer;
         cLineChar: Char = '-');  // 此方法不完善
-        
-    procedure FillExportLvwList(ALvw: TListView; AStrs: TStrings;
-        aiLengths: TAryInt; JoinSeparator: string; cLineChar: Char = '-');
+
     function FindListItem(Alvw: TListView; sKeyWord: string; ColumnIndex: Integer): TListItem;
     procedure ListViewAddColumns(Alvw: TListView; asCaption: array of string; aiWidth: array of Integer);
     function GetListViewHittedItem(lvw: TListView; X, Y: Integer; aHT:THitTests):TListItem;
@@ -71,14 +69,9 @@ type
     { DBGrid处理 }
     function GetFieldWidths(AQ: TADOQuery; ACanvas: TCanvas):TAryInt;
     function GetFieldLengths(AQ: TADOQuery; bAjustTitle: Boolean = True):TAryInt;
-    procedure FillExportQueryList(AQry: TDataSet; AStrs: TStrings;
-        JoinSeparator: string; cLineChar: Char = '-');
     procedure SortQuery(AQ: TADOQuery; nFieldIndex: Integer);
     procedure SortDBGrid(dbgrd: TDBGrid; nColumnIndex: Integer; bFitColWidth: Boolean = True);
     procedure PrintDBGrid(DbGrid:TDbGrid;Title:String);
-    
-    function ExportToExcel(AQ: TDataSet; sFileName: string;
-      sSheetName: string = ''): Boolean;
 
     { TreeView }
     function GetTreeViewHittedNode(tvw: TTreeView; X, Y: Integer;
@@ -93,8 +86,8 @@ type
 implementation
 
 uses
-  SysUtils, jpeg, Variants, U_PlanarList, U_ExcelExportor;
-                                             
+  SysUtils, jpeg, Variants, U_PlanarList;
+
 var
   FUIUtil: TUIUtil;
 
@@ -232,7 +225,10 @@ begin
   bBeginUpdate := False;
   bAddedTemp := False;
   nTempForReplace := Alvw.Items.Count;  // 在列表尾部添加一个元素作为临时交换变量，仅在需要时添加，后面有检测
-  bAsc := FabColSortFlags[nSortedItem];
+  if nSortedItem = -1 then
+    bAsc := True
+  else
+    bAsc := FabColSortFlags[nSortedItem];
   try
     if bBeginUpdate then
       nBound := Alvw.Items.Count-3  // 最多可使用到Count-2,下面要用i+1，所以这里要写Count-3
@@ -240,25 +236,21 @@ begin
       nBound := Alvw.Items.Count-2;
       
     nChanged := nBound;
-    while nChanged <> 0 do
-    begin
+    while nChanged <> 0 do begin
       nChanged := 0;
       nLoopStart := 0;
       nLoopEnd := nBound;
 
       i := nLoopStart;
       // 一次排序循环
-      while i <= nLoopEnd do
-      begin
+      while i <= nLoopEnd do begin
         // 获得相邻两元素的值
         nAnother := i+1;
-        if nSortedItem = 0 then                // caption
+        if (nSortedItem = 0) or (nSortedItem = -1) then                // caption
         begin
           s1 := Alvw.Items[i].Caption;
           s2 := Alvw.Items[nAnother].Caption;
-        end
-        else                                  // subitem
-        begin                                 
+        end else begin
           s1 := Alvw.Items[i].SubItems[nSortedItem-1];
           s2 := Alvw.Items[nAnother].SubItems[nSortedItem-1];
         end;
@@ -269,16 +261,13 @@ begin
         // 检查相邻两元素是否需要调整顺序
         if (bAsc and (nCompareResult > 0))              //升序排列 且前者大于后者
            or ((not bAsc) and (nCompareResult < 0))     //降序     且后者大于前者
-           then
-        begin
+           then begin
           // 第一次进行元素交换时做BeginUpdate
-          if not bBeginUpdate then
-          begin
+          if not bBeginUpdate then begin
             bBeginUpdate := True;  
             Alvw.Items.BeginUpdate;
           end;
-          if not bAddedTemp then
-          begin
+          if not bAddedTemp then begin
             bAddedTemp := True;
             Alvw.Items.Add;
           end;
@@ -294,8 +283,7 @@ begin
   finally
     if bAddedTemp then
       Alvw.Items[nTempForReplace].Delete;
-    if bBeginUpdate then
-    begin
+    if bBeginUpdate then begin
       Alvw.Items.EndUpdate;
     end;
   end;
@@ -454,64 +442,6 @@ begin
   end;
 end;
 
-procedure TUIUtil.FillExportLvwList(ALvw: TListView; AStrs: TStrings;
-  aiLengths: TAryInt; JoinSeparator: string; cLineChar: Char);
-var
-  sFormat, sALine, sItemText: string;
-  i, j: Integer;
-begin
-  with ALvw do
-  begin
-    sALine := '';
-    for i := 0 to Columns.Count - 1 do
-    begin
-      sFormat := '%-' + IntToStr(aiLengths[i]) + 's';    // 字段是字符串 左对齐
-//      if i <> Columns.Count - 1 then
-      if sALine <> '' then
-        sALine := sALine + JoinSeparator + Format(sFormat,[Columns[i].Caption])
-      else
-        sALine := Format(sFormat,[Columns[i].Caption]);
-    end;
-    AStrs.Add(sALine);
-
-    // 分隔线
-    sALine := '';
-    for i := Low(aiLengths) to High(aiLengths) do
-    begin
-      if sALine = '' then
-        sALine := BuildStringByChar(cLineChar, aiLengths[i])
-      else
-        sALine := sALine + JoinSeparator + BuildStringByChar(cLineChar, aiLengths[i]);
-    end;
-    AStrs.Add(sALine);
-
-    //字段内容
-    for i := 0 to Items.Count - 1 do
-    begin
-      sALine := '';
-      for j := Low(aiLengths) to High(aiLengths) do
-      begin
-        if j = 0 then
-          sItemText := Items[i].Caption
-        else
-          sItemText := Items[i].SubItems[j-1];
-
-        if fStrUtil.IsNumber( sItemText ) then
-          sFormat := '%' + IntToStr(aiLengths[j]) + 's'       // 数字右对齐
-        else
-          sFormat := '%-' + IntToStr(aiLengths[j]) + 's';     // 字符串左对齐
-
-//        if j <> High(aiLengths) then
-        if sALine <> '' then
-          sALine := sALine + JoinSeparator + Format(sFormat, [sItemText]) 
-        else
-          sALine := Format(sFormat, [sItemText]);
-      end;
-      AStrs.Add( sALine );
-    end;
-  end;
-end; 
-
 procedure TUIUtil.ClearPhoto( AImg: TImage );
 begin
   AImg.Picture.Graphic := nil;
@@ -654,85 +584,6 @@ begin
     First;
     EnableControls;
   end;
-end; 
-
-procedure TUIUtil.FillExportQueryList(AQry: TDataSet; AStrs: TStrings;
-   JoinSeparator: string; cLineChar: Char);
-var
-  i: Integer;
-  slstPlanar: TPlanarStringList;
-  slstItem: TStringList;
-begin
-  with AQry do
-  begin
-    slstPlanar := TPlanarStringList.Create;
-    try
-      DisableControls;
-      slstItem := TStringList.Create;
-      for i := 0 to FieldCount - 1 do
-      begin
-        if i = FieldCount - 1 then      
-          slstItem.Add(Fields[i].FieldName)
-        else
-          slstItem.Add(Fields[i].FieldName + JoinSeparator);
-      end;
-      slstPlanar.AddItem(slstItem);
-      
-       //字段内容
-      First;
-      while not Eof do
-      begin        
-        Application.ProcessMessages;  
-        slstItem := TStringList.Create;
-        for i := 0 to FieldCount - 1 do
-        begin
-          if i = FieldCount - 1 then
-          begin
-            // blob字段 无法显示内容
-            if Fields[i].DataType in [ftOraBlob, ftBlob] then
-              slstItem.Add('Blob')
-            else
-              slstItem.Add(Fields[i].AsString)
-          end
-          else
-          begin                   
-            if Fields[i].DataType in [ftOraBlob, ftBlob] then
-              slstItem.Add('Blob' + JoinSeparator)
-            else
-              slstItem.Add(Fields[i].AsString + JoinSeparator);
-          end;
-        end;
-        slstPlanar.AddItem(slstItem);
-        Next;
-      end;          
-      for i := 0 to Fields.Count - 1 do
-      begin
-        if Fields[i].DataType in [ftOraBlob, ftOraClob, ftBlob, ftMemo] then
-          slstPlanar.AddExcludeCol(i);
-      end;
-      slstPlanar.FormatItemLengths;
-      AStrs.Add(slstPlanar.ItemStr[0]);
-
-      // 分隔线 
-      slstItem := TStringList.Create;
-      for i := 0 to Fields.Count - 1 do
-      begin
-        slstItem.Add(BuildStringByChar(cLineChar,
-            slstPlanar.ItemLengths[i]));
-      end;
-      slstPlanar.InsertPlanarItem(1, slstItem);
-
-      for i := 1 to slstPlanar.Count - 1 do
-      begin
-        AStrs.Add(slstPlanar.ItemStr[i]);
-      end;
-
-      First;
-      EnableControls;
-    finally
-      slstPlanar.Free;
-    end;
-  end;  
 end;
 
 function TUIUtil.FindListItem(Alvw: TListView; sKeyWord: string;
@@ -1054,73 +905,6 @@ begin
     DataSet.first;
     DataSet.EnableControls;
     Printer.EndDoc;
-  end;
-end;
-
-function TUIUtil.ExportToExcel(AQ: TDataSet; sFileName: string;
-  sSheetName: string): Boolean;
-var
-  i, nRow: Integer;
-  sDataType: string;
-  slstPlanar: TPlanarStringList;
-  slstItem: TStringList;
-  fieldItem: TFieldItem;
-  ExcelExp: TExcelExportor;
-begin
-  try
-    ExcelExp := TExcelExportor.Create;
-    ExcelExp.AddWorkSheet;
-    if sSheetName <> '' then
-      ExcelExp.ActiveSheet.Name := sSheetName;
-    slstPlanar := TPlanarStringList.Create;
-    try
-      AQ.DisableControls;      
-      AQ.First;
-      nRow := 2;
-      while not AQ.Eof do
-      begin
-        Application.ProcessMessages;
-        slstItem := TStringList.Create;
-        for i := 0 to AQ.FieldCount - 1 do
-        begin
-          ExcelExp.ActiveSheet.CellValue[nRow,i+1] := AQ.Fields[i].AsString;
-          slstItem.Add(AQ.Fields[i].AsString);
-        end;
-        slstPlanar.AddItem(slstItem);
-        AQ.Next;
-        Inc(nRow);
-      end;
-      slstPlanar.AdjustItemLengths;
-
-      // 标题
-      for i := 0 to AQ.FieldCount -1 do
-      begin
-        try
-          fieldItem := TFieldItem.Create(AQ.Fields[i]);
-          try
-            sDataType := fieldItem.DataTypeStr;
-            ExcelExp.ActiveSheet.SetColumnWidth(i+1,
-              slstPlanar.ItemLengths[i]+1+Length(sDataType));
-            ExcelExp.ActiveSheet.CellValue[1,i+1] := AQ.Fields[i].DisplayName
-              +':'+sDataType;
-          finally
-            fieldItem.Free;
-          end;
-        except
-          // 不能设置Range的ColumnWidth属性，会出异常
-        end;
-      end; 
-    finally
-      slstPlanar.Free;
-    end;
-    AQ.First;
-    AQ.EnableControls;
-    ExcelExp.SaveFile(sFileName);
-    ExcelExp.Free;
-
-    Result := True;
-  except
-    Result := False;
   end;
 end;
 

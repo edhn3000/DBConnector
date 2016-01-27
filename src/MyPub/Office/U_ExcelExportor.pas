@@ -31,6 +31,7 @@ type
     property Row: Integer read FRow write FRow;
     property Col: Integer read FCol write FCol;
     property Value: string read getValue write setValue;
+    property Cell: OleVariant read FCell;
 
     class function GetCellName(indexX, indexY: Integer): string; 
 

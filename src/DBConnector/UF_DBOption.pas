@@ -510,8 +510,6 @@ begin
 end;
 
 procedure TF_DBOption.btnChooseSqliteDBClick(Sender: TObject);
-var
-  sDBExt: string;
 begin
   with TOpenDialog.Create(Self) do
   try

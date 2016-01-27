@@ -63,7 +63,8 @@ type
     wvWin2003,
     wvWinNT3, wvWinNT3Serv,
     wvWinNT4, wvWinNT4Serv,
-    wvWinCE);
+    wvWinCE,
+    wvWinVista, wvWin7, wvWin8);
 
 { TCommonFunc 通用方法类 }
   TCommonFunc = class
@@ -241,25 +242,25 @@ begin
     Info.dwOSVersionInfoSize := SizeOf(OSVERSIONINFO);
     if not GetVersionEx(POSVERSIONINFO(@Info)^) then Exit;
   end;
-  with Info do
-  begin
-    SVersion := IntToStr(dwMajorVersion) + '.' + IntToStr(dwMinorVersion)
-      + '.' + IntToStr(dwBuildNumber and $0000FFFF);
+//  with Info do
+//  begin
+    SVersion := IntToStr(Info.dwMajorVersion) + '.' + IntToStr(Info.dwMinorVersion)
+      + '.' + IntToStr(Info.dwBuildNumber and $0000FFFF);
     SProduct := 'Microsoft Windows unknown';
     case Info.dwPlatformId of
       VER_PLATFORM_WIN32s: { Windows 3.1 and earliest }
         SProduct := 'Microsoft Win32s';
       VER_PLATFORM_WIN32_WINDOWS:
-        case dwMajorVersion of
+        case Info.dwMajorVersion of
           4: { Windows95,98,ME }
-            case dwMinorVersion of
+            case Info.dwMinorVersion of
               0:
               begin
                 Result := wvWin95;
-                if szCSDVersion[1] in ['B', 'C'] then
+                if Info.szCSDVersion[1] in ['B', 'C'] then
                 begin
                   SProduct := 'Microsoft Windows 95 OSR2';
-                  SVersion := SVersion + szCSDVersion[1];
+                  SVersion := SVersion + Info.szCSDVersion[1];
                 end
                 else
                   SProduct := 'Microsoft Windows 95';
@@ -267,10 +268,10 @@ begin
               10:
               begin
                 Result := wvWin98;
-                if szCSDVersion[1] = 'A' then
+                if Info.szCSDVersion[1] = 'A' then
                 begin
                   SProduct := 'Microsoft Windows 98 SE';
-                  SVersion := SVersion + szCSDVersion[1];
+                  SVersion := SVersion + Info.szCSDVersion[1];
                 end
                 else
                   SProduct := 'Microsoft Windows  98';
@@ -284,12 +285,12 @@ begin
         end;
       VER_PLATFORM_WIN32_NT:
         begin
-          SServicePack := szCSDVersion;
-          case dwMajorVersion of
+          SServicePack := Info.szCSDVersion;
+          case Info.dwMajorVersion of
             0..4:
               if bEx then
               begin
-                case wProductType of
+                case Info.wProductType of
                   VER_NT_WORKSTATION:
                     begin
                       Result := wvWinNT4;
@@ -298,7 +299,7 @@ begin
                   VER_NT_SERVER:
                     begin
                       Result := wvWinNT4Serv;
-                      if wSuiteMask and VER_SUITE_ENTERPRISE <> 0 then
+                      if Info.wSuiteMask and VER_SUITE_ENTERPRISE <> 0 then
                         SProduct := 'Microsoft Windows NT Advanced Server 4.0'
                       else
                         SProduct := 'Microsoft Windows NT Server 4.0';
@@ -333,9 +334,9 @@ begin
                   Free;
                 end;
             5:
-              case dwMinorVersion of
+              case Info.dwMinorVersion of
                 0: { Windows 2000 }
-                  case wProductType of
+                  case Info.wProductType of
                     VER_NT_WORKSTATION:
                       begin
                         Result := wvWin2k;
@@ -344,9 +345,9 @@ begin
                     VER_NT_SERVER:
                       begin
                         Result := wvWin2kServ;
-                        if wSuiteMask and VER_SUITE_DATACENTER <> 0 then
+                        if Info.wSuiteMask and VER_SUITE_DATACENTER <> 0 then
                           SProduct := 'Microsoft Windows 2000 Datacenter Server'
-                        else if wSuiteMask and VER_SUITE_ENTERPRISE <> 0 then
+                        else if Info.wSuiteMask and VER_SUITE_ENTERPRISE <> 0 then
                           SProduct := 'Microsoft Windows 2000 Advanced Server'
                         else
                           SProduct := 'Microsoft Windows 2000 Server';
@@ -355,7 +356,7 @@ begin
                 1: { Windows XP }
                   begin
                     Result := wvWinXp;
-                    if wSuiteMask and VER_SUITE_PERSONAL <> 0 then
+                    if Info.wSuiteMask and VER_SUITE_PERSONAL <> 0 then
                       SProduct := 'Microsoft Windows XP Home Edition'
                     else
                       SProduct := 'Microsoft Windows XP Professional';
@@ -363,15 +364,33 @@ begin
                 2: { Windows Server 2003 }
                   begin
                     Result := wvWin2003;
-                    if wSuiteMask and VER_SUITE_DATACENTER <> 0 then
+                    if Info.wSuiteMask and VER_SUITE_DATACENTER <> 0 then
                       SProduct := 'Microsoft Windows Server 2003 Datacenter Edition'
-                    else if wSuiteMask and VER_SUITE_ENTERPRISE <> 0 then
+                    else if Info.wSuiteMask and VER_SUITE_ENTERPRISE <> 0 then
                       SProduct := 'Microsoft Windows Server 2003 Enterprise Edition'
-                    else if wSuiteMask and VER_SUITE_BLADE <> 0 then
+                    else if Info.wSuiteMask and VER_SUITE_BLADE <> 0 then
                       SProduct := 'Microsoft Windows Server 2003 Web Edition'
                     else
                       SProduct :=
                         'Microsoft Windows Server 2003 Standard Edition';
+                  end;
+              end;
+            6:
+              case Info.dwMinorVersion of
+                0:
+                  begin
+                    Result := wvWinVista;
+                    SProduct := 'Microsoft Windows Vista';
+                  end;
+                1:
+                  begin
+                    Result := wvWin7;
+                    SProduct := 'Microsoft Windows 7';
+                  end;
+                2:
+                  begin
+                    Result := wvWin8;
+                    SProduct := 'Microsoft Windows 8';
                   end;
               end;
           end;
@@ -382,7 +401,7 @@ begin
           SProduct := SProduct + ' CE';
         end;
     end;
-  end;
+//  end;
 end;
 
 function TCommonFunc.GetWinVersionInfo:TWinVer;

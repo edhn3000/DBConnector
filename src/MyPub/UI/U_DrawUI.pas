@@ -1,6 +1,7 @@
 unit U_DrawUI;
 
 { 用于在界面绘制控件UI时的数据对象
+  author: edhn
 }
 
 interface
@@ -59,18 +60,18 @@ type
     FFont: TFont;
     FEnabled: Boolean;
     FOnClick: TNotifyEvent;
-    FUsePicture: Boolean;
     FNormalPicture: TPicture;
     FHoverPicture: TPicture;
     FClickPicture: TPicture;
     FDisablePicture: TPicture;
     FDrawState: TButtonState;
+    FIcon: TPicture;
   public
     MouseOnButton: Boolean;
     property Caption: String read FCaption write FCaption;
     property Font: TFont read FFont write FFont;
     property Enabled: Boolean read FEnabled write FEnabled;
-    property UsePicture: Boolean read FUsePicture write FUsePicture;
+    property Icon: TPicture read FIcon write FIcon;
     property NormalPicture: TPicture read FNormalPicture;
     property HoverPicture: TPicture read FHoverPicture;
     property ClickPicture: TPicture read FClickPicture;
@@ -157,6 +158,7 @@ begin
   inherited Create(Owner);
   FFont := TFont.Create;
   FEnabled := True;
+  FIcon := TPicture.Create;
   FNormalPicture := TPicture.Create;
   FHoverPicture := TPicture.Create;
   FClickPicture := TPicture.Create;
@@ -166,6 +168,7 @@ end;
 destructor TDrawUIButton.Destroy;
 begin
   FFont.Free;
+  FIcon.Free;
   FNormalPicture.Free;
   FHoverPicture.Free;
   FClickPicture.Free;
@@ -175,37 +178,50 @@ end;
 
 procedure TDrawUIButton.Draw(Canvas: TCanvas; param: Integer);
 var
-  rBtn, rEdge: TRect;
+  rBtn, rEdge, iconRect: TRect;
 begin
   rBtn := BrushRect;
   rEdge := Self.EdgeRect;
+  iconRect := Classes.Rect(0, 0, 0, 0);
+  if Assigned(FIcon.Graphic) and (not FIcon.Graphic.Empty) then begin
+    iconRect := Classes.Rect(rEdge.Left + 2, rEdge.Top + 1,
+      rEdge.Left + Self.Height - 2, rEdge.Top + Self.Height - 1);
+    Canvas.StretchDraw(iconRect, FIcon.Graphic);
+  end;
+
+  rBtn.Left := rBtn.Left + RectWidth(iconRect);
   if not Enabled then begin
-    if UsePicture then begin
-      Canvas.Draw(rEdge.Left, rEdge.Top, DisablePicture.Bitmap);
-    end else begin
-      DrawEdge(Canvas.Handle, rEdge, EDGE_RAISED, BF_RECT);
-      Canvas.FillRect(rBtn);
-    end;
-  end else if param = BUTTON_DRAW_CLICK then begin
-    if UsePicture then begin
-      Canvas.Draw(rEdge.Left, rEdge.Top, ClickPicture.Bitmap);
-    end else begin
-      DrawEdge(Canvas.Handle, rEdge, EDGE_ETCHED, BF_RECT);
-      Canvas.FillRect(rBtn);
-    end;
-  end else if param = BUTTON_DRAW_HOVER then begin
-    if UsePicture then begin
-      Canvas.Draw(rEdge.Left, rEdge.Top, HoverPicture.Bitmap);
+    Canvas.Brush.Color := $F4F4F4;
+    if Assigned(DisablePicture.Graphic) and (not DisablePicture.Graphic.Empty) then begin
+      Canvas.Draw(rEdge.Left, rEdge.Top, DisablePicture.Graphic);
     end else begin
       DrawEdge(Canvas.Handle, rEdge, EDGE_RAISED, BF_RECT);
       Canvas.FillRect(rBtn);
     end;
   end else begin
-    if UsePicture then begin
-      Canvas.Draw(rEdge.Left, rEdge.Top, NormalPicture.Bitmap);
+     Canvas.Brush.Color := Color;
+     if param = BUTTON_DRAW_CLICK then begin
+      if Assigned(ClickPicture.Graphic) and (not ClickPicture.Graphic.Empty) then begin
+        Canvas.Draw(rEdge.Left, rEdge.Top, ClickPicture.Graphic);
+      end else begin
+        DrawEdge(Canvas.Handle, rEdge, EDGE_ETCHED, BF_RECT);
+        Canvas.FillRect(rBtn);
+      end;
+    end else if param = BUTTON_DRAW_HOVER then begin
+      if Assigned(HoverPicture.Graphic) and (not HoverPicture.Graphic.Empty) then begin
+        Canvas.Draw(rEdge.Left, rEdge.Top, HoverPicture.Graphic);
+      end else begin
+        InflateRect(rEdge, 1, 1);
+        DrawEdge(Canvas.Handle, rEdge, EDGE_RAISED, BF_RECT);
+        Canvas.FillRect(rBtn);
+      end;
     end else begin
-      DrawEdge(Canvas.Handle, rEdge, EDGE_RAISED, BF_RECT);
-      Canvas.FillRect(rBtn);
+      if Assigned(NormalPicture.Graphic) and (not NormalPicture.Graphic.Empty) then begin
+        Canvas.Draw(rEdge.Left, rEdge.Top, NormalPicture.Graphic);
+      end else begin
+        DrawEdge(Canvas.Handle, rEdge, EDGE_RAISED, BF_RECT);
+        Canvas.FillRect(rBtn);
+      end;
     end;
   end;
 

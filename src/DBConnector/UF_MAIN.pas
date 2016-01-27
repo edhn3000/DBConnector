@@ -31,7 +31,7 @@ uses
 //  end;
 
 type
-  TF_MAIN = class(TForm)
+  TF_DBConnectorMain = class(TForm)
     actlstMain: TActionList;
     actExit: TAction;
     actExecSelSql: TAction;
@@ -327,13 +327,14 @@ type
   end;
 
 var
-  F_MAIN: TF_MAIN;
+  F_DBConnectorMain: TF_DBConnectorMain;
 
 implementation
 
 uses
   U_Ini, U_CommonFunc, UF_About, Math, U_UIUtil, Clipbrd
-  {$IFDEF USECNDEBUG},CnDebug{$ENDIF}, U_fStrUtil, U_DBUtil;
+  {$IFDEF USECNDEBUG},CnDebug{$ENDIF}, U_fStrUtil, U_DBUtil,
+  UF_ExportResult;
 
 const
   C_nPgcMainPageSQL = 0;
@@ -341,7 +342,7 @@ const
 
 {$R *.dfm} 
 
-function TF_MAIN.DBType2Dialect(dbt: TDBType): TSQLDialect;
+function TF_DBConnectorMain.DBType2Dialect(dbt: TDBType): TSQLDialect;
 var
   ConnectedSQLDialect: TSQLDialect;
 begin
@@ -368,7 +369,7 @@ begin
   Result := ConnectedSQLDialect;
 end; 
 
-function TF_MAIN.DoConnectDB(DBConnect: IDBConnect; DBConfig: TDBConfig;
+function TF_DBConnectorMain.DoConnectDB(DBConnect: IDBConnect; DBConfig: TDBConfig;
   bConnect: Boolean): Boolean;
 var
   sDataSource, sUser, sPwd: string;
@@ -453,7 +454,7 @@ begin
   end;
 end;
 
-function TF_MAIN.ConnectDB(bConnect: Boolean): Boolean;
+function TF_DBConnectorMain.ConnectDB(bConnect: Boolean): Boolean;
 begin
   if not bConnect then
   begin        
@@ -487,7 +488,7 @@ begin
   end;  
 end;
 
-procedure TF_MAIN.ReConnectDB();
+procedure TF_DBConnectorMain.ReConnectDB();
 var
   oldDb: string;
 begin
@@ -510,17 +511,17 @@ begin
   end;
 end;  
 
-procedure TF_MAIN.cbbSchemaSelectChange(Sender: TObject);
+procedure TF_DBConnectorMain.cbbSchemaSelectChange(Sender: TObject);
 begin
   ReConnectDB();
 end;
 
-procedure TF_MAIN.actExitExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actExitExecute(Sender: TObject);
 begin
   Close;
 end;
 
-procedure TF_MAIN.ShowQuickSearch(sKey: string);
+procedure TF_DBConnectorMain.ShowQuickSearch(sKey: string);
 begin
   if not pnlQuickSearch.Visible then
     pnlQuickSearch.Visible := True;
@@ -531,13 +532,13 @@ begin
     edtQuickSearch.Text := edtQuickSearch.Text + sKey;
 end;   
 
-procedure TF_MAIN.CloseQuickSearch;
+procedure TF_DBConnectorMain.CloseQuickSearch;
 begin
   pnlQuickSearch.Visible := False;
   edtQuickSearch.Text := '';
 end;
 
-procedure TF_MAIN.ShowStatus(s: string);
+procedure TF_DBConnectorMain.ShowStatus(s: string);
 var
   nTextWidth: Integer;
 begin
@@ -551,7 +552,7 @@ begin
   Application.ProcessMessages;
 end;
 
-procedure TF_MAIN.DoExecSelSql();
+procedure TF_DBConnectorMain.DoExecSelSql();
 var
   oldcur: TCursor;
 begin
@@ -567,22 +568,22 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actExecSelSqlExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actExecSelSqlExecute(Sender: TObject);
 begin
   DoExecSelSql;
 end;
 
-procedure TF_MAIN.actExecAllSqlsExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actExecAllSqlsExecute(Sender: TObject);
 begin
   ExecuteSql(GetActiveEditor.Text);
 end;
 
-procedure TF_MAIN.lvwDataClick(Sender: TObject);
+procedure TF_DBConnectorMain.lvwDataClick(Sender: TObject);
 begin
   RefreshUIStatus;
 end;
 
-procedure TF_MAIN.RefreshUIStatus;
+procedure TF_DBConnectorMain.RefreshUIStatus;
 begin
   actRefreshTree.Enabled := g_Global.Connected;
   actManRefreshTree.Enabled := g_Global.Connected;
@@ -619,7 +620,7 @@ begin
   LoadDataBaseNames;
 end;
 
-procedure TF_MAIN.LoadDataBaseNames;
+procedure TF_DBConnectorMain.LoadDataBaseNames;
 var
   i: Integer;
 begin
@@ -654,7 +655,7 @@ begin
   end;
 end;  
 
-procedure TF_MAIN.LoadPlugin;
+procedure TF_DBConnectorMain.LoadPlugin;
 var
   actMenuItem: TActionClientItem;
   act: TAction;
@@ -679,17 +680,17 @@ begin
   end;
 end; 
 
-procedure TF_MAIN.actOnePluginExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actOnePluginExecute(Sender: TObject);
 begin
   FPluginList.Items[(Sender as TAction).Tag].Run;
 end;
 
-procedure TF_MAIN.actOneDBAHelpExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actOneDBAHelpExecute(Sender: TObject);
 begin
   FDBAHelpList.Items[(Sender as TAction).Tag].Run;
 end;
 
-function TF_MAIN.ExecuteSql(sSqlText: string):Boolean;
+function TF_DBConnectorMain.ExecuteSql(sSqlText: string):Boolean;
 begin
   Result := False;
   if Trim(sSqlText) = '' then Exit;
@@ -726,7 +727,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.DoAfterExecSqlThread;
+procedure TF_DBConnectorMain.DoAfterExecSqlThread;
 begin   
   actExecSelSql.Enabled := not g_frmDBOperate.ExecIng;
   actManExecSql.Enabled := not g_frmDBOperate.ExecIng;
@@ -735,7 +736,7 @@ begin
   actManStopExec.Enabled := not actManExecSql.Enabled;
 end;  
 
-procedure TF_MAIN.actConnectExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actConnectExecute(Sender: TObject);
 begin
   actConnect.Enabled := False;
   Application.ProcessMessages;
@@ -748,7 +749,7 @@ begin
   RefreshUIStatus;
 end;
 
-procedure TF_MAIN.FormCreate(Sender: TObject);
+procedure TF_DBConnectorMain.FormCreate(Sender: TObject);
 begin
 //  ReportMemoryLeaksOnShutdown := True;
 
@@ -766,10 +767,13 @@ begin
 
   FbSortNode := btnSortNode.Down;
 
+  OpenWithEditorMethod := OpenWithEditor;
+  SearchTextMethod := btnSearchTextClick;
+
   LoadDBAHelp;
 end;
 
-procedure TF_MAIN.FormShow(Sender: TObject);
+procedure TF_DBConnectorMain.FormShow(Sender: TObject);
 var
 //  nSqlDia: TSQLDialect;
   i: Integer;
@@ -822,7 +826,7 @@ begin
 //  frmDBOperateMain.pnlGrid.Align := alBottom;
 end;
 
-procedure TF_MAIN.FormDestroy(Sender: TObject);
+procedure TF_DBConnectorMain.FormDestroy(Sender: TObject);
 var
   i: Integer;
 begin
@@ -852,34 +856,34 @@ begin
 
 end;
 
-procedure TF_MAIN.RefreshTree;
+procedure TF_DBConnectorMain.RefreshTree;
 begin
   g_DBTreeFunc.initDBTree(tvwObjects);
 end;
 
-procedure TF_MAIN.cbbTableFilterChange(Sender: TObject);
+procedure TF_DBConnectorMain.cbbTableFilterChange(Sender: TObject);
 begin
   RefreshTree;
 end;
 
-procedure TF_MAIN.actRefreshTreeExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actRefreshTreeExecute(Sender: TObject);
 begin
   RefreshTree;
 end; 
 
-procedure TF_MAIN.actFindAtTreeExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actFindAtTreeExecute(Sender: TObject);
 begin
   if not Assigned(gFindForm) then
     gFindForm := TF_Find.Create(Self);
   with gFindForm do
   begin
-    PassControl(TWinControl(tvwObjects), '查找数据库对象');
+    InitControl(TWinControl(tvwObjects), '查找数据库对象');
     FormStyle := fsStayOnTop;
     Show;
   end;
 end;  
 
-procedure TF_MAIN.actEditDataExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actEditDataExecute(Sender: TObject);
 var
   sFields, sSqlExecute: string;
   parentNode, childNode: TTreeNode;
@@ -971,7 +975,7 @@ begin
   end;
 end;   
 
-procedure TF_MAIN.actEditObjExecute(Sender: TObject);   
+procedure TF_DBConnectorMain.actEditObjExecute(Sender: TObject);
 var
   sourceList: TStrings;
   i: Integer;
@@ -1008,7 +1012,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actExportTableCreateSQLExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actExportTableCreateSQLExecute(Sender: TObject);
 var
   selnode: TTreeNode;
   slst: TStrings;
@@ -1048,7 +1052,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.tvwObjectsMouseDown(Sender: TObject;
+procedure TF_DBConnectorMain.tvwObjectsMouseDown(Sender: TObject;
   Button: TMouseButton;Shift: TShiftState;X, Y: Integer);
 var
   tndHit: TTreeNode;
@@ -1083,7 +1087,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actExecScriptExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actExecScriptExecute(Sender: TObject);
 var
   i: Integer;
 begin     
@@ -1115,14 +1119,14 @@ begin
 ////  end;
 end;
 
-procedure TF_MAIN.mniAutoShowErrClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniAutoShowErrClick(Sender: TObject);
 begin
   actManAutoShowError.Checked := not actManAutoShowError.Checked;
   GlobalParams.AutoShowError := actManAutoShowError.Checked;
   GlobalParams.SaveSettings;
 end;
 
-procedure TF_MAIN.mniCopyNameClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniCopyNameClick(Sender: TObject);
 var
   sFields: string;
   sCopyedName: string;
@@ -1174,18 +1178,18 @@ begin
   end;
 end;
 
-procedure TF_MAIN.mniTvwGoToClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniTvwGoToClick(Sender: TObject);
 begin
   if not Assigned(gFindForm) then
     gFindForm := TF_Find.Create(Self);
   with gFindForm do
   begin
-    PassControl(TWinControl(tvwObjects));
+    InitControl(TWinControl(tvwObjects));
     FormStyle := fsStayOnTop;
     Show;
   end;
 end;
-procedure TF_MAIN.pnlLeftResize(Sender: TObject);
+procedure TF_DBConnectorMain.pnlLeftResize(Sender: TObject);
   procedure SetControlWidth(ACtrl: TControl;nWidth: Integer);
   begin
     if nWidth < 0 then
@@ -1199,17 +1203,17 @@ begin
   SetControlWidth(bvlLeft2, bvlLeft1.Width );
 end;
 
-procedure TF_MAIN.pnlObjSelectResize(Sender: TObject);
+procedure TF_DBConnectorMain.pnlObjSelectResize(Sender: TObject);
 begin
   //
 end;
 
-procedure TF_MAIN.pnlSchemaSelectResize(Sender: TObject);
+procedure TF_DBConnectorMain.pnlSchemaSelectResize(Sender: TObject);
 begin
   //
 end;
 
-procedure TF_MAIN.SetHighLight(ASQLDialect: TSQLDialect);
+procedure TF_DBConnectorMain.SetHighLight(ASQLDialect: TSQLDialect);
 //var
 //  i: TSQLDialect;
 begin
@@ -1224,7 +1228,7 @@ begin
 //  cbbHighLightChange(nil);
 end;
 
-procedure TF_MAIN.cbbHighLightChange(Sender: TObject);
+procedure TF_DBConnectorMain.cbbHighLightChange(Sender: TObject);
 begin
 //  if cbbHighLight.ItemIndex >= 0 then
 //  begin
@@ -1233,7 +1237,7 @@ begin
 //  end;
 end;
 
-procedure TF_MAIN.mniOnTopClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniOnTopClick(Sender: TObject);
 begin
   actManOnTop.Checked := not actManOnTop.Checked;
   if actManOnTop.Checked then
@@ -1242,7 +1246,7 @@ begin
     commonFunc.SetOnTopMost(Handle, False);
 end;
 
-procedure TF_MAIN.ShowTreePanel(bShow: Boolean);
+procedure TF_DBConnectorMain.ShowTreePanel(bShow: Boolean);
 begin
   pnlLeft.Visible := bShow;
   splLeftAndMain.Visible := bShow;
@@ -1252,12 +1256,12 @@ begin
   GlobalParams.ShowTree := bShow;
 end;
 
-procedure TF_MAIN.actStopExecExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actStopExecExecute(Sender: TObject);
 begin
   g_frmDBOperate.StopExec;
 end;
 
-procedure TF_MAIN.OpenWithEditor(AFileName: string);
+procedure TF_DBConnectorMain.OpenWithEditor(AFileName: string);
 var
   nPageIndex: Integer;
   dbFrame: TFM_DBOperate;
@@ -1271,7 +1275,7 @@ begin
   dbFrame.LoadFromFile(AFileName);
 end;
 
-procedure TF_MAIN.actOpenWithEditorExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actOpenWithEditorExecute(Sender: TObject);
 begin
 //  if IDCancel = CheckOpenedFileSaved then Exit;  
 
@@ -1288,17 +1292,17 @@ begin
   end;
 end;
 
-procedure TF_MAIN.btnClosePnlLeftClick(Sender: TObject);
+procedure TF_DBConnectorMain.btnClosePnlLeftClick(Sender: TObject);
 begin
   ShowTreePanel(not pnlLeft.Visible);
 end;
 
-procedure TF_MAIN.mniShowTreeClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniShowTreeClick(Sender: TObject);
 begin
   ShowTreePanel(not actManShowTree.Checked);
 end;
 
-procedure TF_MAIN.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+procedure TF_DBConnectorMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   if g_Global.Connected then
   begin
@@ -1310,7 +1314,7 @@ begin
 //    CanClose := False;
 end;
 
-function TF_MAIN.AddPage(sPageName: string; active: Boolean): Integer;
+function TF_DBConnectorMain.AddPage(sPageName: string; active: Boolean): Integer;
 var
   ts : TTabSheet;
   i, nNameIndex: Integer;
@@ -1350,24 +1354,24 @@ begin
     RefreshTabArray;
 end;
 
-procedure TF_MAIN.actAddFieldExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actAddFieldExecute(Sender: TObject);
 begin
 // alter table add column_name column_type;
 end;  
 
-procedure TF_MAIN.actModifyFieldExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actModifyFieldExecute(Sender: TObject);
 begin             
 // 如果数据类型不一致，需要清空原列
 // update table set column_name=null;
 // alter table modify(column_name column_type);
 end;
 
-procedure TF_MAIN.actAddPageExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actAddPageExecute(Sender: TObject);
 begin
   AddPage();
 end;
 
-procedure TF_MAIN.actRemovePageExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actRemovePageExecute(Sender: TObject);
 var
   nPage: Integer;
 begin
@@ -1381,35 +1385,35 @@ begin
   AdjustActiveDBFrame;
 end;
 
-procedure TF_MAIN.actManShowTreeExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actManShowTreeExecute(Sender: TObject);
 begin
   ShowTreePanel(not actManShowTree.Checked);
 end;
 
-procedure TF_MAIN.actManAutoShowErrorExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actManAutoShowErrorExecute(Sender: TObject);
 begin
   actManAutoShowError.Checked := not actManAutoShowError.Checked;
   GlobalParams.AutoShowError := actManAutoShowError.Checked;
   GlobalParams.SaveSettings;
 end;
 
-procedure TF_MAIN.actManOnTopExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actManOnTopExecute(Sender: TObject);
 begin
   actManOnTop.Checked := not actManOnTop.Checked;
   commonFunc.SetOnTopMost(Handle, actManOnTop.Checked)
 end;
 
-procedure TF_MAIN.actManRefreshTreeExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actManRefreshTreeExecute(Sender: TObject);
 begin
   RefreshTree;
 end;
 
-procedure TF_MAIN.act15Execute(Sender: TObject);
+procedure TF_DBConnectorMain.act15Execute(Sender: TObject);
 begin
   SetWindowLong(Handle,GWL_HWNDPARENT, GetDesktopWindow);
 end;
 
-procedure TF_MAIN.actAboutExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actAboutExecute(Sender: TObject);
 begin
   with TF_About.Create(Self) do
   try
@@ -1419,7 +1423,7 @@ begin
   end;
 end;  
 
-procedure TF_MAIN.pmTvwPopup(Sender: TObject);
+procedure TF_DBConnectorMain.pmTvwPopup(Sender: TObject);
 var
   selNode: TTreeNode;
 begin
@@ -1428,7 +1432,7 @@ begin
     Exit;
 end;
 
-procedure TF_MAIN.tvwObjectsChange(Sender: TObject; Node: TTreeNode);
+procedure TF_DBConnectorMain.tvwObjectsChange(Sender: TObject; Node: TTreeNode);
 var
   tag: TNodeTag;
 begin
@@ -1456,24 +1460,24 @@ begin
   mniGenUpdate.Enabled := g_Global.Connected and (tag in [ntgTable, ntgField]);
 end;
 
-procedure TF_MAIN.tvwObjectsCollapsed(Sender: TObject; Node: TTreeNode);
+procedure TF_DBConnectorMain.tvwObjectsCollapsed(Sender: TObject; Node: TTreeNode);
 begin
   TDBTree.SetNodeImage(Node);
 end;
 
-procedure TF_MAIN.tvwObjectsExpanded(Sender: TObject; Node: TTreeNode);
+procedure TF_DBConnectorMain.tvwObjectsExpanded(Sender: TObject; Node: TTreeNode);
 begin
   TDBTree.SetNodeImage(Node);
 end;
 
-procedure TF_MAIN.tvwObjectsExpanding(Sender: TObject; Node: TTreeNode;
+procedure TF_DBConnectorMain.tvwObjectsExpanding(Sender: TObject; Node: TTreeNode;
   var AllowExpansion: Boolean);
 begin
   g_DBTreeFunc.AddDBTreeNodeChilds(tvwObjects, Node, IsSystemObjects, FbSortNode);
 //  AddDBTreeNodeChilds(Node);
 end;
 
-procedure TF_MAIN.actDBParamsExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actDBParamsExecute(Sender: TObject);
 begin
   with TF_DBOption.Create(Self) do
   try
@@ -1486,13 +1490,13 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actResetIconCacheExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actResetIconCacheExecute(Sender: TObject);
 begin
   if IDYES = FormatMsgBox('将重建图标缓存，是否继续？', mbsQuestion, Handle) then
     commonFunc.ResetIconCache;
 end;     
 
-procedure TF_MAIN.lbxMsgMouseDown(Sender: TObject; Button: TMouseButton;
+procedure TF_DBConnectorMain.lbxMsgMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   if Button = mbRight then
@@ -1501,7 +1505,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actSaveEditorTextAsExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actSaveEditorTextAsExecute(Sender: TObject);
 var
   dbFrame: TFM_DBOperate;
 begin
@@ -1529,7 +1533,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actSaveEditorTextExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actSaveEditorTextExecute(Sender: TObject);
 var
   dbFrame: TFM_DBOperate;
 begin
@@ -1545,40 +1549,40 @@ begin
 //  end;
 end;
 
-procedure TF_MAIN.BarMouseDown(Sender: TObject; Button: TMouseButton;
+procedure TF_DBConnectorMain.BarMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   if Button = mbRight then
     pmBars.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
 end;
 
-procedure TF_MAIN.mniShowMenuClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniShowMenuClick(Sender: TObject);
 begin
   mniShowMenu.Checked := not mniShowMenu.Checked;
   actmmb1.Visible := mniShowMenu.Checked;
   GlobalParams.ShowMenu := mniShowMenu.Checked;
 end;
 
-procedure TF_MAIN.mniShowBarClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniShowBarClick(Sender: TObject);
 begin
   mniShowBar.Checked := not mniShowBar.Checked;
   acttb1.Visible := mniShowBar.Checked;
   GlobalParams.ShowBar := mniShowBar.Checked;
 end;
 
-procedure TF_MAIN.btnSearchTextClick(Sender: TObject);
+procedure TF_DBConnectorMain.btnSearchTextClick(Sender: TObject);
 begin
   if not Assigned(gFindForm) then
     gFindForm := TF_Find.Create(Self);
   with gFindForm do
   begin
-    PassStrings(GetActiveEditor.Lines, EditorGoToLine, '查找文本');
+    InitStrings(GetActiveEditor.Lines, EditorGoToLine, '查找文本');
     FormStyle := fsStayOnTop;
     Show;
   end;
 end;
 
-procedure TF_MAIN.EditorGoToLine(nLine, nIndex, nCount: Integer);
+procedure TF_DBConnectorMain.EditorGoToLine(nLine, nIndex, nCount: Integer);
 var
   i: Integer;
   nSelStart: Integer;
@@ -1595,7 +1599,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.EditorStateChanged(oldState, newState: TEditorState);
+procedure TF_DBConnectorMain.EditorStateChanged(oldState, newState: TEditorState);
 begin
   case newState of
     esOpened:
@@ -1621,7 +1625,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.tvwObjectsKeyDown(Sender: TObject; var Key: Word;
+procedure TF_DBConnectorMain.tvwObjectsKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   if Key = VK_F3 then
@@ -1638,7 +1642,7 @@ begin
   end;  
 end;
 
-procedure TF_MAIN.tvwObjectsKeyPress(Sender: TObject; var Key: Char);
+procedure TF_DBConnectorMain.tvwObjectsKeyPress(Sender: TObject; var Key: Char);
 begin
 //  if Key in ['a'..'z', 'A'..'Z', '0'..'9', '_'] then
   if Key > #31 then
@@ -1654,12 +1658,15 @@ begin
   end
 end;
 
-procedure TF_MAIN.edtQuickSearchChange(Sender: TObject);
+procedure TF_DBConnectorMain.edtQuickSearchChange(Sender: TObject);
 begin
-  gFindForm.DoFindAtTree(tvwObjects, edtQuickSearch.Text, False, False, True, False);
+  gFindForm.CaseSensitive := False;
+  gFindForm.WholeWordMatch := False;
+  gFindForm.MatchAtFirst := True;
+  gFindForm.DoFindAtTree(tvwObjects, edtQuickSearch.Text, False);
 end; 
 
-procedure TF_MAIN.edtQuickSearchKeyDown(Sender: TObject; var Key: Word;
+procedure TF_DBConnectorMain.edtQuickSearchKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   if Key = VK_ESCAPE then
@@ -1668,14 +1675,14 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actTipExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actTipExecute(Sender: TObject);
 begin
   if not Assigned(tipForm) then
     tipForm := TF_Tip.Create(Self);
   commonFunc.FormShowOnTop(tipForm);
 end;
 
-function TF_MAIN.IsSystemObjects: Boolean;
+function TF_DBConnectorMain.IsSystemObjects: Boolean;
 begin
   case cbbTableFilter.ItemIndex of
     1: Result := True;
@@ -1684,23 +1691,23 @@ begin
   end;
 end;
 
-procedure TF_MAIN.btnSortNodeClick(Sender: TObject);
+procedure TF_DBConnectorMain.btnSortNodeClick(Sender: TObject);
 begin
   FbSortNode := btnSortNode.Down;
   RefreshUIStatus;
 end;
 
-procedure TF_MAIN.pgcMainChange(Sender: TObject);
+procedure TF_DBConnectorMain.pgcMainChange(Sender: TObject);
 begin
   AdjustActiveDBFrame;
 end;   
 
-function TF_MAIN.GetActiveDBFrame: TFM_DBOperate; 
+function TF_DBConnectorMain.GetActiveDBFrame: TFM_DBOperate;
 begin
   Result := GetDBFrameInPage(pgcMain.ActivePageIndex);
 end;
 
-procedure TF_MAIN.AdjustActiveDBFrame;
+procedure TF_DBConnectorMain.AdjustActiveDBFrame;
 begin
   if Assigned(g_frmDBOperate) then
     g_frmDBOperate.EditStateChanged := nil;
@@ -1714,7 +1721,7 @@ begin
   actStopExec.Enabled := not actExecSelSql.Enabled;
 end;   
 
-function TF_MAIN.GetDBFrameInPage(pageIndex: Integer): TFM_DBOperate;
+function TF_DBConnectorMain.GetDBFrameInPage(pageIndex: Integer): TFM_DBOperate;
 var
   i: Integer;
 begin
@@ -1734,7 +1741,7 @@ begin
     raise Exception.Create('未找到TFM_DBOperate控件');
 end;
 
-function TF_MAIN.getTabIndexByPoint(X, Y: Integer): Integer;
+function TF_DBConnectorMain.getTabIndexByPoint(X, Y: Integer): Integer;
 var
   i: Integer;
   pt: TPoint;
@@ -1752,13 +1759,13 @@ begin
   end;  
 end;       
 
-procedure TF_MAIN.pmTabPopup(Sender: TObject);
+procedure TF_DBConnectorMain.pmTabPopup(Sender: TObject);
 begin
   pmiCloseTab.Enabled := pgcMain.ActivePageIndex <> 0;
   pmiRename.Enabled := pgcMain.ActivePageIndex <> 0;
 end;
 
-procedure TF_MAIN.pgcMainMouseDown(Sender: TObject; Button: TMouseButton;
+procedure TF_DBConnectorMain.pgcMainMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   nTab: Integer;
@@ -1786,7 +1793,7 @@ begin
   end;    
 end;
 
-procedure TF_MAIN.RefreshTabArray;
+procedure TF_DBConnectorMain.RefreshTabArray;
 var
   i: Integer;
 begin
@@ -1798,17 +1805,17 @@ begin
   btnWrap.Down := GetActiveDBFrame.Editor.WordWrap;
 end;
 
-procedure TF_MAIN.actExportExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actExportExecute(Sender: TObject);
 begin
   g_frmDBOperate.actExport.Execute;
 end;
 
-procedure TF_MAIN.actPrintExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actPrintExecute(Sender: TObject);
 begin
   g_frmDBOperate.btnPrint.Click;
 end;
 
-procedure TF_MAIN.tvwObjectsCustomDrawItem(Sender: TCustomTreeView;
+procedure TF_DBConnectorMain.tvwObjectsCustomDrawItem(Sender: TCustomTreeView;
   Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
 begin
   if Sender.Selected = Node then
@@ -1819,7 +1826,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actDropTableExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actDropTableExecute(Sender: TObject);
 var
   i: Integer;
   node: TTreeNode;
@@ -1858,7 +1865,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actDelDataExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actDelDataExecute(Sender: TObject);
 var
   i: Integer;
   node: TTreeNode;
@@ -1888,7 +1895,7 @@ begin
   end;
 end;
 
-procedure TF_MAIN.actDeleteFieldExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actDeleteFieldExecute(Sender: TObject);
 begin    
   if not Assigned(FNodeHitted) then
     Exit;
@@ -1907,17 +1914,17 @@ begin
   end;
 end;
 
-function TF_MAIN.GetActiveEditor: TSynEdit;
+function TF_DBConnectorMain.GetActiveEditor: TSynEdit;
 begin
   Result := g_frmDBOperate.syndtSql;
 end;
 
-procedure TF_MAIN.pmiCloseTabClick(Sender: TObject);
+procedure TF_DBConnectorMain.pmiCloseTabClick(Sender: TObject);
 begin
   actRemovePageExecute(actRemovePage);  
 end;   
 
-procedure TF_MAIN.pmiRenameClick(Sender: TObject);
+procedure TF_DBConnectorMain.pmiRenameClick(Sender: TObject);
 begin
   with TF_Rename.Create(Self) do
   try
@@ -1929,30 +1936,30 @@ begin
   end;   
 end;
 
-procedure TF_MAIN.WMUserDBConnectorEditorSave(var msg: TMsg);
+procedure TF_DBConnectorMain.WMUserDBConnectorEditorSave(var msg: TMsg);
 begin
   actSaveEditorTextExecute(actSaveEditorText);
 end;
 
-procedure TF_MAIN.WMUserDBConnectorMainRefreshOnConnect(var msg: TMsg);
+procedure TF_DBConnectorMain.WMUserDBConnectorMainRefreshOnConnect(var msg: TMsg);
 begin
   RefreshUIStatus;    
   ShowStatus('连接成功！数据库类型' + DBTypeToStr(
     g_Global.DBConnect.DBEngine.GetDBType, False));
 end; 
 
-procedure TF_MAIN.WMUserDBConnectorMainRefreshOnDisConnect(var msg: TMsg);
+procedure TF_DBConnectorMain.WMUserDBConnectorMainRefreshOnDisConnect(var msg: TMsg);
 begin
   RefreshUIStatus;
   ShowStatus('已经断开连接！');
 end;
 
-procedure TF_MAIN.WMUSERDBConnectorOnConnectSucc(var msg: TMsg);
+procedure TF_DBConnectorMain.WMUSERDBConnectorOnConnectSucc(var msg: TMsg);
 begin
   g_Global.ReRegisterAllFrame;
 end;
 
-procedure TF_MAIN.WMUSERDBConnectorOnConnectFail(var msg: TMsg);
+procedure TF_DBConnectorMain.WMUSERDBConnectorOnConnectFail(var msg: TMsg);
 var
   i: Integer;
 begin
@@ -1960,7 +1967,7 @@ begin
     g_frmDBOperate.DBConnect.AddLog(g_Global.DBConnect.Log[i]);
 end;
 
-function TF_MAIN.GetFieldsByTableNode(tableNode: TTreeNode;
+function TF_DBConnectorMain.GetFieldsByTableNode(tableNode: TTreeNode;
   schema: string): string;
 var                 
   fieldNode: TTreeNode;
@@ -1986,7 +1993,7 @@ begin
   Result := sFields;
 end;
 
-function TF_MAIN.GetFieldsByFieldNode(fieldNode: TTreeNode;
+function TF_DBConnectorMain.GetFieldsByFieldNode(fieldNode: TTreeNode;
   schema: string): string;
 var
   sFields: string;
@@ -2008,7 +2015,7 @@ begin
   Result := sFields;
 end;
 
-function TF_MAIN.GenSelectSqlByNode(node: TTreeNode; alias: string): string;
+function TF_DBConnectorMain.GenSelectSqlByNode(node: TTreeNode; alias: string): string;
 var
   tag: TNodeTag;
   sFields: string;
@@ -2032,7 +2039,7 @@ begin
   Result := Format('Select %s From %s;', [sFields, sTable]);
 end;
 
-procedure TF_MAIN.mniGenSelectClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniGenSelectClick(Sender: TObject);
 var
   selnode: TTreeNode;
   sSql: string;
@@ -2045,7 +2052,7 @@ begin
   GetActiveEditor.Lines.Add(sSql);
 end;
 
-function TF_MAIN.GetFieldValuesByTableNode(tableNode: TTreeNode): string;
+function TF_DBConnectorMain.GetFieldValuesByTableNode(tableNode: TTreeNode): string;
 var
   fieldNode: TTreeNode;
   sFieldValues: string;
@@ -2066,7 +2073,7 @@ begin
   Result := sFieldValues;
 end;
 
-function TF_MAIN.GetFieldValuesByFieldNode(fieldNode: TTreeNode): string;
+function TF_DBConnectorMain.GetFieldValuesByFieldNode(fieldNode: TTreeNode): string;
 var
   sFieldValues: string;
   i: Integer;
@@ -2085,7 +2092,7 @@ begin
   Result := sFieldValues;
 end;
 
-function TF_MAIN.GenInsertSqlByNode(node: TTreeNode): string;
+function TF_DBConnectorMain.GenInsertSqlByNode(node: TTreeNode): string;
 var
   tag: TNodeTag;
   sFields, sFieldValues: string;
@@ -2117,7 +2124,7 @@ begin
   Result := Format('Insert Into %s(%s) Values(%s);', [sTable, sFields, sFieldValues]);
 end;
 
-procedure TF_MAIN.mniGenInsertClick(Sender: TObject);
+procedure TF_DBConnectorMain.mniGenInsertClick(Sender: TObject);
 var
   selnode: TTreeNode;
   sSql: string;
@@ -2130,7 +2137,7 @@ begin
   GetActiveEditor.Lines.Add(sSql);
 end;
 
-function TF_MAIN.GetFieldUpdatesByTableNode(tableNode: TTreeNode): string;
+function TF_DBConnectorMain.GetFieldUpdatesByTableNode(tableNode: TTreeNode): string;
 var
   firstNode, node: TTreeNode;
   fieldName, sFieldUpdates: string;
@@ -2153,7 +2160,7 @@ begin
   Result := sFieldUpdates;
 end;
 
-function TF_MAIN.GetFieldUpdatesByFieldNode(fieldNode: TTreeNode): string;
+function TF_DBConnectorMain.GetFieldUpdatesByFieldNode(fieldNode: TTreeNode): string;
 var
   sFieldUpdates: string;
   i: Integer;
@@ -2172,7 +2179,7 @@ begin
   Result := sFieldUpdates;
 end;
 
-function TF_MAIN.GenUpdateSqlByNode(node: TTreeNode): string;
+function TF_DBConnectorMain.GenUpdateSqlByNode(node: TTreeNode): string;
 var
   tag: TNodeTag;
   sFieldUpdates: string;
@@ -2206,7 +2213,7 @@ begin
   Result := Format('Update %s set %s where %s;', [sTable, sFieldUpdates, sWhere]);
 end;
 
-procedure TF_MAIN.mniGenUpdateClick(Sender: TObject);  
+procedure TF_DBConnectorMain.mniGenUpdateClick(Sender: TObject);
 var
   selnode: TTreeNode;
   tabName: string;
@@ -2240,7 +2247,7 @@ begin
   GetActiveEditor.Lines.Add(sSql);
 end;
 
-procedure TF_MAIN.btnWrapClick(Sender: TObject);
+procedure TF_DBConnectorMain.btnWrapClick(Sender: TObject);
 var
   bWraped: Boolean;
 begin
@@ -2249,17 +2256,17 @@ begin
   GetActiveDBFrame.Editor.WordWrap := not bWraped;
 end;
 
-procedure TF_MAIN.actCommandHelpExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actCommandHelpExecute(Sender: TObject);
 begin
   ExecuteSql(C_sHeadFlag_DBCommand + ' ' + C_sDBCommand_Help);
 end;
 
-procedure TF_MAIN.actShowSettingsExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actShowSettingsExecute(Sender: TObject);
 begin
   ExecuteSql(C_sHeadFlag_DBCommand + ' ' + C_sDBCommand_ShowSettings);
 end;
 
-procedure TF_MAIN.tvwObjectsShowHint(Sender: TObject; Node: TTreeNode);
+procedure TF_DBConnectorMain.tvwObjectsShowHint(Sender: TObject; Node: TTreeNode);
 var
   sHint: string;
 begin
@@ -2297,7 +2304,7 @@ begin
   tvwObjects.ShowHint(sHint);
 end;
 
-procedure TF_MAIN.actExportDBExecute(Sender: TObject);
+procedure TF_DBConnectorMain.actExportDBExecute(Sender: TObject);
 begin
   with TF_ExportTables.Create(Self) do
   try
@@ -2308,7 +2315,7 @@ begin
   end;   
 end;
 
-procedure TF_MAIN.RunDBAHelp(item: TDBAHelpItem);
+procedure TF_DBConnectorMain.RunDBAHelp(item: TDBAHelpItem);
 var
   nPageIndex: Integer;
   dbFrame: TFM_DBOperate;
@@ -2332,7 +2339,7 @@ begin
     dbFrame.ExecuteSql(item.SQL.Text);
 end;
 
-procedure TF_MAIN.LoadDBAHelp;
+procedure TF_DBConnectorMain.LoadDBAHelp;
 var              
   actMenuItem: TActionClientItem;
   act: TAction;

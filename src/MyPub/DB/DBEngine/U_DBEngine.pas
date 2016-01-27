@@ -39,6 +39,7 @@ type
     FOnConnected   : TNotifyEvent;
     FOnDisConnected: TNotifyEvent;
 
+    function GetLastExecTime: TDateTime;
     function GetConnection: TCustomConnection;virtual;
     function GetConnected: Boolean;virtual;
     procedure SetConnected(value: Boolean);virtual;
@@ -76,7 +77,7 @@ type
     property LastError: string read FLastError;
     property MaxRecords: Integer read GetMaxRecords write SetMaxRecords;
 
-    property LastExecTime: TDateTime read FLastExecTime;
+    property LastExecTime: TDateTime read GetLastExecTime;
 
     property DBKeepInterval: Integer read FDBKeepInterval write FDBKeepInterval;
     property DataSource: string read FDataSource;
@@ -611,6 +612,11 @@ end;
 function TDBEngine.GetLastError: string;
 begin
   Result := FLastError;
+end;
+
+function TDBEngine.GetLastExecTime: TDateTime;
+begin
+  Result := FLastExecTime;
 end;
 
 function TDBEngine.GetLastElapsedMilis: Double;

@@ -19,9 +19,9 @@ type
   TSelectionPos = record
     StartPos: Integer;
     EndPos: Integer;
+  public
+    function ContainSelectionPos(selPos: TSelectionPos): Boolean;
   end;
-
-  function InSelectionPos(selPosMain, selPosSub: TSelectionPos): Boolean;
 
 const
   WORD_FIND_MAX_LEN = 255;   // 查找文字时的最大长度
@@ -32,7 +32,7 @@ type
   protected
     FUseActiveApp: Boolean;   // 是否使用已激活的Application对象
     FIsInstalled: Boolean;    // Office是否已安装 实现类初始化时对其赋值
-    FApplicatioin: OleVariant;// Office的Application
+    FApplication: OleVariant; // Office的Application
     FDocument: OleVariant;    // 当前文档
     FWindow: OleVariant;      // 当前窗口
     FOpend: Boolean;          // 是否已打开文档
@@ -50,112 +50,154 @@ type
   public
     property ShowComment: Boolean read GetShowComment write SetShowComment;
     property CloseOnFree: Boolean read FCloseOnFree write FCloseOnFree;
-    property Application: OleVariant read FApplicatioin;
+    property Application: OleVariant read FApplication;
     property Document: OleVariant read FDocument;
     property Window: OleVariant read FWindow;
     property Opend: Boolean read FOpend;
 
     // 传入已激活的Application对象
     constructor Create(ActiveApp: OleVariant); overload; virtual;
+    constructor Create(doc: OleVariant; window: OleVariant); overload; virtual;
     destructor Destroy;override;
 
     // Office是否已安装
     function IsInstalled: Boolean; virtual;
 
-    // 打开文档
+    // 通过ScreenUpdating控制WordApp是否自动刷新UI
+    procedure BeginUpdate;
+    procedure EndUpdate;
+
+{-------------------------------------------------------------------------------
+    文档的创建保存关闭等操作
+-------------------------------------------------------------------------------}
+    // 创建新文档
     procedure NewFile(sFileName: String); virtual;abstract;
+    // 打开文档
     procedure OpenFile(sFileName: String; readOnly: Boolean);overload; virtual;abstract;
     procedure OpenFile(sFileName: String);overload;
+    // 保存文档
+    procedure SaveFile; virtual;
+    procedure SaveAsFile(newFileName: String); virtual;
     // 关闭文档
     procedure CloseFile(bSave: Boolean = false);virtual;abstract;
     // 显示文档，默认打开时不会显示文档
     procedure ShowDocument(); virtual;
-    // 查找内容，返回内容在resultList中
-    procedure Find(sFind: string; resultList: TStringList); virtual;
 
 {-------------------------------------------------------------------------------
-  过程名:    AddComment 增加批注
-  作者:      fengyq
-  日期:      2014.10.17
-  参数:      text: string; userName: string
-  返回值:    OleVariant 批注对象，Comment类型
+    批注相关操作
 -------------------------------------------------------------------------------}
     function AddComment(text: string; userName: string): OleVariant; virtual;
     procedure RemoveComments(userName: String); virtual;
 
 {-------------------------------------------------------------------------------
-  过程名:    SelText, 选中Word中文本
-  作者:      fengyq
-  日期:      2014.09.27
-  参数:      text: String
-  返回值:    无
+    选区相关操作
 -------------------------------------------------------------------------------}
-    function SelectText(text: String): Boolean; overload; virtual;
+    procedure SetSelectionText(s: string); virtual;
+    // 写入文本，通过insertAfter写，写之后文本会被选中，便于追加格式
+    procedure AppendSelectionText(s: string); virtual;
+    // 相当于选区的Start=End，在AppendSelectionText后通常要调用
+    procedure MoveToSelectionEnd;
+    // 设置样式
+    procedure SetSelectionStyle(styleName: string);
+
+{-------------------------------------------------------------------------------
+    书签相关操作
+-------------------------------------------------------------------------------}
+    function GetBookmark(name: String; var bk: OleVariant): Boolean; virtual;
+    function SelectBookmark(name: String): Boolean; virtual;
+    function ReplaceBookmark(key, value: String; reAddBookmark: boolean = False): Boolean; virtual;
+    function ReplaceBookmarks(values: TStrings; reAddBookmark: boolean = False): Boolean; virtual;
+    procedure ClearBookmarks(); virtual;
+
+{-------------------------------------------------------------------------------
+    文本处理
+-------------------------------------------------------------------------------}
+    // 查找并选中文本
+    function SelectText(text: String; fromHead: Boolean = True): Boolean; overload; virtual;
     function SelectText(startPos, endPos: LongInt): Boolean; overload;virtual;
-    function SelectTextWithTag(text: String): Boolean;virtual;
+    function SelectTextWithTag(text: String; fromHead: Boolean = True): Boolean;virtual;
     function SelectTextInRange(text: String; iStart,iEnd:Integer): Boolean;virtual;
-{-------------------------------------------------------------------------------
-  过程名:    SelAndColorText 选中Word中文本并用给定颜色标出，
-             标出的部分是靠iPos, iLen指定
-  作者:      fengyq
-  日期:      2014.09.27
-  参数:      text: String; iPos, iLen: Integer; color: Integer
-  返回值:    无
--------------------------------------------------------------------------------}
-    procedure SelectAndColorText(text: String; iPos, iLen: Integer; color: Integer);virtual;
-
+    // 查找并选中文本，对文本上背景色
+    procedure SelectAndColorText(text: String; iPos, iLen: Integer; color: Integer; fromHead: Boolean = True);virtual;
     procedure SelectAndColorSubText(selStart, selEnd: Integer; subText: string; color: Integer);virtual;
+    // 查找并替换文本内容
+    function ReplaceText(text: String; replacement: String; fromHead: Boolean = True): Boolean; virtual;
+    function ReplaceTextInRange(text: String; replacement: String; startPos, endPos: Integer): Boolean; virtual;
 
-    {将换行符号替换为^p}
-    function ReplaceWordNewLine(sText: String): string;
 
 {-------------------------------------------------------------------------------
-  过程名:    ExecuteControl 执行控件功能，比如点击工具栏按钮
-  作者:      fengyq
-  日期:      2014.10.20
-  参数:      controlType: TOleEnum; 类型如msoControlButton
-             tag: String 控件Tag，用于查找
-  返回值:    Boolean
+    表格操作
 -------------------------------------------------------------------------------}
+    function AddTable(rowCount: integer; colCount: Integer): OleVariant; virtual;
+    procedure DeleteTableRows(table: OleVariant; startRow, endRow: Integer); virtual;
+
+{-------------------------------------------------------------------------------
+    段落操作
+-------------------------------------------------------------------------------}
+    // 从给定位置获取到所在段落号
+    function GetParagraphNoByPos(posInDoc: Integer; beginPaNo, endPaNo: Integer): Integer; overload;
+    function GetParagraphNoByPos(posInDoc: Integer): Integer; overload;
+
+{-------------------------------------------------------------------------------
+    控件按钮操作
+-------------------------------------------------------------------------------}
+    // 执行控件功能，比如点击工具栏按钮
     function ExecuteControl(controlType: TOleEnum; tag: String): Boolean;virtual;abstract;
 
-
-    // 获取选区，传入对象须自身具备start和end属性
-    class function GetRangePos(range: OleVariant): TSelectionPos;
-    // 获取选区，传入对象须自身具备start和end属性
-    class procedure SetRangePos(range: OleVariant; selPos: TSelectionPos);
-
-    // 获取选区，必须传入选取的拥有者，如Window、Application
-    class function GetSelectionPos(SelectionOwner: OleVariant): TSelectionPos;
-    // 设置选区，必须传入选取的拥有者，如Window、Application
-    class procedure SetSelectionPos(SelectionOwner: OleVariant; selPos: TSelectionPos);
+{-------------------------------------------------------------------------------
+    静态方法
+-------------------------------------------------------------------------------}
+    // 将换行符号替换为^p，使用Word查找功能时必须先对文本做此处理
+    class function ReplaceWordNewLine(sText: String): string;
 
     // 改变选取开头，moveStep：移动步伐，start+moveStep
     class procedure MoveSelectionStart(selection: OleVariant; moveStep: Integer);
     // 改变选取结尾，moveStep：移动步伐，end+moveStep
     class procedure MoveSelectionEnd(selection: OleVariant; moveStep: Integer);
 
+    // 获取Range或Selection，传入对象须自身具备start和end属性
+    class function GetRangePos(range: OleVariant): TSelectionPos;
+    // 设置Range或Selection的位置，传入对象须自身具备start和end属性
+    class procedure SetRangePos(range: OleVariant; selPos: TSelectionPos); overload;
+    class procedure SetRangePos(range: OleVariant; startPos, endPos: Integer); overload;
+
+    // 获取SelectionOwner.Selection，必须传入选区的拥有者，如Window、Application
+    class function GetSelectionPos(SelectionOwner: OleVariant): TSelectionPos;
+    // 设置SelectionOwner.Selection的位置，必须传入选区的拥有者，如Window、Application
+    class procedure SetSelectionPos(SelectionOwner: OleVariant; selPos: TSelectionPos); overload;
+    class procedure SetSelectionPos(SelectionOwner: OleVariant; startPos, endPos: Integer); overload;
+
   end;
 
 implementation
 
-function InSelectionPos(selPosMain, selPosSub: TSelectionPos): Boolean;
+{ TSelectionPos }
+
+function TSelectionPos.ContainSelectionPos(selPos: TSelectionPos): Boolean;
 begin
-  Result := (selPosMain.StartPos <= selPosSub.StartPos)
-     and (selPosMain.EndPos >= selPosSub.EndPos);
+  Result := (StartPos <= selPos.StartPos) and (EndPos >= selPos.EndPos);
 end;
 
 { TOfficeHelper }
 
 constructor TOfficeHelper.Create(ActiveApp: OleVariant);
 begin
-  FApplicatioin := ActiveApp;
+  FApplication := ActiveApp;
   FUseActiveApp := True;
-  if FApplicatioin.Documents.Count > 0 then begin
-    FDocument := FApplicatioin.ActiveDocument;
-    FWindow := FApplicatioin.ActiveWindow;
+  if FApplication.Documents.Count > 0 then begin
+    FDocument := FApplication.ActiveDocument;
+    FWindow := FApplication.ActiveWindow;
   end;
   FCloseOnFree := False;  // 外部传入的WordApp对象，默认不管关闭
+end;
+
+constructor TOfficeHelper.Create(doc: OleVariant; window: OleVariant);
+begin
+  FDocument := doc;
+  FWindow := window;
+  FApplication := doc.Application;
+  FUseActiveApp := True;
+  FCloseOnFree := False;
 end;
 
 destructor TOfficeHelper.Destroy;
@@ -170,16 +212,16 @@ begin
   try
     if useActiveApp then begin
       try
-        FApplicatioin := GetActiveOleObject(className);
+        FApplication := GetActiveOleObject(className);
         FUseActiveApp := True;
       except
         on e: EOleSysError do begin
           // 没有打开的Application，创建新的
-          FApplicatioin := CreateOleObject(className);
+          FApplication := CreateOleObject(className);
         end;
       end
     end else begin
-      FApplicatioin := CreateOleObject(className);
+      FApplication := CreateOleObject(className);
     end;
     Result := True;
     FIsInstalled := Result;
@@ -194,12 +236,12 @@ function TOfficeHelper.CheckApplication(): Boolean;
 var
   S: string;
 begin
-  Result := not VarIsNull(FApplicatioin);
+  Result := not VarIsNull(FApplication);
 
   if Result then
   begin
     try
-      S := FApplicatioin.Version;
+      S := FApplication.Version;
     except
       Result := False;
     end;
@@ -211,9 +253,29 @@ begin
   Result := FIsInstalled;
 end;
 
+procedure TOfficeHelper.BeginUpdate;
+begin
+  FApplication.ScreenUpdating := False;
+end;
+
+procedure TOfficeHelper.EndUpdate;
+begin
+  FApplication.ScreenUpdating := True;
+end;
+
 procedure TOfficeHelper.OpenFile(sFileName: String);
 begin
   OpenFile(sFileName, False);
+end;
+
+procedure TOfficeHelper.SaveFile;
+begin
+  FDocument.Save;
+end;
+
+procedure TOfficeHelper.SaveAsFile(newFileName: String);
+begin
+  FDocument.SaveAs(newFileName);
 end;
 
 function TOfficeHelper.GetFitFindText(text: String): string;
@@ -277,7 +339,7 @@ begin
   end;
 end;
 
-function TOfficeHelper.ReplaceWordNewLine(sText: String): string;
+class function TOfficeHelper.ReplaceWordNewLine(sText: String): string;
 var
   s: string;
 begin
@@ -288,10 +350,68 @@ begin
   Result := s;
 end;
 
+function TOfficeHelper.AddTable(rowCount: integer; colCount: Integer): OleVariant;
+begin
+  Result := FDocument.Tables.Add( FWindow.Selection.Range, rowCount, colCount, EmptyParam, EmptyParam );
+end;
+
+procedure TOfficeHelper.DeleteTableRows(table: OleVariant; startRow, endRow: Integer);
+var
+  i: Integer;
+begin
+  for i := endRow downto startRow do begin
+    table.Rows.Item(i).Delete;
+  end;
+end;
+
+function TOfficeHelper.GetParagraphNoByPos(posInDoc: Integer; beginPaNo, endPaNo: Integer): Integer;
+var
+  frontNo, endNo, midNo: Integer;
+  selPos: TSelectionPos;
+  bMatch: Boolean;
+begin
+  Result := 0;
+  frontNo := beginPaNo;
+  endNo := endPaNo;
+  midNo := Trunc((frontNo + endNo) / 2);
+
+  // 由于上一段结尾=下一段开头，应认为交界位置属于后一段
+  // 如：段5.End=586,同时也会有段6.Start=586，应认为586是段6的
+  // 特殊情况是结尾段落，只要位置>=开头就可以
+  selPos := TOfficeHelper.GetRangePos(FDocument.Paragraphs.Item(midNo).Range);
+  if midNo = endNo then begin
+    bMatch := selPos.StartPos <= posInDoc;
+  end else begin
+    bMatch := (selPos.StartPos <= posInDoc) and (selPos.EndPos > posInDoc);
+  end;
+  if not bMatch then begin
+    if posInDoc < selPos.StartPos  then begin
+      endNo := midNo - 1
+    end else begin
+      frontNo := midNo + 1;
+    end;
+  end else begin
+    Result := midNo;
+    Exit;
+  end;
+  if frontNo > endNo then
+    Exit;
+  Result := GetParagraphNoByPos(posInDoc, frontNo, endNo);
+end;
+
+function TOfficeHelper.GetParagraphNoByPos(posInDoc: Integer): Integer;
+var
+  frontNo, endNo: Integer;
+begin
+  frontNo := 1;
+  endNo := FDocument.Paragraphs.Count;
+  Result := GetParagraphNoByPos(posInDoc, frontNo, endNo);
+end;
+
 procedure TOfficeHelper.ShowDocument;
 begin
-  FApplicatioin.Visible := True;
-  FApplicatioin.Activate;
+  FApplication.Visible := True;
+  FApplication.Activate;
 end;
 
 function TOfficeHelper.GetShowComment(): Boolean;
@@ -325,14 +445,121 @@ begin
   for i := FDocument.Comments.Count downto 1 do
   begin
     cmt := FDocument.Comments.Item(i);
-    if cmt.Initial = userName then
-    begin
+    if cmt.Initial = userName then begin
       cmt.Delete;
     end;
   end;
 end;
 
-function TOfficeHelper.SelectText(text: String): Boolean;
+procedure TOfficeHelper.SetSelectionText(s: string);
+begin
+  FWindow.Selection.Text := s;
+end;
+
+procedure TOfficeHelper.AppendSelectionText(s: string);
+begin
+  FWindow.Selection.InsertAfter(s);
+end;
+
+procedure TOfficeHelper.MoveToSelectionEnd;
+var
+  direct: OleVariant;
+begin
+  direct := wdCollapseEnd;
+  FWindow.Selection.Collapse(direct);
+end;
+
+procedure TOfficeHelper.SetSelectionStyle(styleName: string);
+var
+  style: OleVariant;
+begin
+  if styleName <> '' then begin
+    style := FDocument.Styles.item(styleName);
+    if not VarIsNull(style) then
+      FWindow.Selection.Style := style;
+  end;
+end;
+
+function TOfficeHelper.GetBookmark(name: String; var bk: OleVariant): Boolean;
+var
+  bkItem: OleVariant;
+  i: Integer;
+begin
+  Result := False;
+  for i := 1 to FDocument.Bookmarks.Count do begin
+    bkItem := FDocument.Bookmarks.Item(i);
+    if name = bkItem.Name then begin
+      bk := bkItem;
+      Result := True;
+      System.Break;
+    end;
+  end;
+end;
+
+function TOfficeHelper.SelectBookmark(name: String): Boolean;
+var
+  bk: OleVariant;
+begin
+  Result := GetBookmark(name, bk);
+  if Result then
+    bk.Range.Select;
+end;
+
+function TOfficeHelper.ReplaceBookmark(key, value: String; reAddBookmark: boolean): Boolean;
+var
+  bkValue: String;
+  bk: OleVariant;
+  bkRange: OleVariant;
+begin
+  Result := False;
+  if not GetBookmark(key, bk) then
+    Exit;
+
+  bkValue := value;
+  bkRange := bk.Range;
+  bkRange.Text := bkValue;
+  Result := True;
+
+  if reAddBookmark then
+    FDocument.Bookmarks.Add(key, bkRange);
+end;
+
+function TOfficeHelper.ReplaceBookmarks(values: TStrings; reAddBookmark: boolean): Boolean;
+var
+  i, nIndex: Integer;
+  bkName, bkValue: String;
+  bk: OleVariant;
+  bkRange: OleVariant;
+begin
+  Result := False;
+  for i := FDocument.Bookmarks.Count downto 1 do begin
+    bk := FDocument.Bookmarks.Item(i);
+    bkName := bk.Name;
+    // 不存在的表示不用替换
+    nIndex := values.IndexOfName(bkName);
+    if nIndex <= 0 then
+      Continue;
+
+    bkValue := values.Values[bkName];
+    bkRange := bk.Range;
+    bkRange.Text := bkValue;
+    Result := True;
+
+    if reAddBookmark then
+      FDocument.Bookmarks.Add(bkName, bkRange);
+  end;
+end;
+
+procedure TOfficeHelper.ClearBookmarks();
+var
+  i: Integer;
+begin
+  for i := FDocument.Bookmarks.Count downto 1 do begin
+    FDocument.Bookmarks.Item(i).Delete;
+  end;
+end;
+
+function TOfficeHelper.SelectText(text: String; fromHead: Boolean): Boolean;
 var
   upline,nomove,oleUnit,oleExtend: OleVariant;
   sFindText: WideString;
@@ -345,10 +572,10 @@ begin
   oleUnit := wdStory;
   oleExtend := wdMove;
   //先定位到文档最前面
-  FWindow.Selection.HomeKey(oleUnit, oleExtend);
-  //再定位错误
-  FWindow.Selection.Start := 0;
-  FWindow.Selection.End := 0;
+  if fromHead then begin
+    FWindow.Selection.HomeKey(oleUnit, oleExtend);
+    SetSelectionPos(FWindow, 0, 0);
+  end;
   FWindow.Selection.Find.ClearFormatting;
   FWindow.Selection.Find.Text:=sFindText;
   FWindow.Selection.Find.Replacement.Text:=sFindText;
@@ -362,9 +589,7 @@ begin
   begin
     FWindow.Selection.Find.MatchByte:=False;
     FWindow.Selection.Find.MatchWildcards:=True;
-  end
-  else
-  begin
+  end else begin
     FWindow.Selection.Find.MatchByte:=True;
     FWindow.Selection.Find.MatchWildcards:=False;
   end;
@@ -378,31 +603,33 @@ begin
   FWindow.SmallScroll(nomove,upline,nomove,nomove);
   Result := FWindow.Selection.Find.Found;
 
-  // 扩展选区
-//  if Result and (sFindText <> text) then begin
-//    TOfficeHelper.MoveSelectionEnd(FWindow.Selection, Length(text)-Length(sFindText));
-//  end;
+  // 如果之前缩短了查找文本，这里扩展选区
+  if Result and (sFindText <> text) then begin
+    TOfficeHelper.MoveSelectionEnd(FWindow.Selection, Length(text)-Length(sFindText));
+  end;
 end;
 
 function TOfficeHelper.SelectText(startPos, endPos: LongInt): Boolean;
 begin
-  FWindow.Selection.Start := startPos;
-  FWindow.Selection.End := endPos;
+  SetSelectionPos(FWindow, startPos, endPos);
+  FWindow.ScrollIntoView(FWindow.Selection.Range);
   Result := True;
 end;
 
-function TOfficeHelper.SelectTextWithTag(text: String): Boolean;
+function TOfficeHelper.SelectTextWithTag(text: String; fromHead: Boolean): Boolean;
 var
   count: integer;
-  selPos: TSelectionPos;
+  selPos, firstMatchPos: TSelectionPos;
 begin
   Result := False;
   if text = '' then
     Exit;
   text := StringReplace(text,#13#10,'^p',[rfReplaceAll]);
   text := StringReplace(text,#10,'^p',[rfReplaceAll]);
-  SelectText(text);
+  SelectText(text, fromHead);
   count := 0;
+  firstMatchPos.StartPos := 0;
+
   while FWindow.Selection.Find.Found do begin
     // 修正选区
     selPos := TOfficeHelper.GetSelectionPos(FWindow);
@@ -410,11 +637,14 @@ begin
       selPos.EndPos := selPos.StartPos + Length(text) - 1;
       TOfficeHelper.SetSelectionPos(FWindow, selPos);
     end;
+    if firstMatchPos.StartPos = 0 then begin
+      firstMatchPos := TOfficeHelper.GetSelectionPos(FWindow);
+    end;
 
     // 找到文字
     if (ReplaceWordNewLine(FWindow.Selection.Text) = text) then begin
       Result := True;
-      // 检查是否高亮，优先选中高亮
+      // 检查是否高亮，优先选中高亮，选区内有多个颜色会返回9999999
       if (FWindow.Selection.Font.Shading.BackgroundPatternColor <> wdColorAutomatic)
         and (FWindow.Selection.Font.Shading.BackgroundPatternColor <> Integer(wdColorAutomatic)) then begin
         Exit;
@@ -423,8 +653,13 @@ begin
     //为了防止死循环
     inc(count);
     if count > 50 then
-      Exit;
+      System.Break;
     FWindow.Selection.Find.Execute;
+  end;
+
+  // 如果没有找到带标记的，优先定位到最开头匹配的
+  if firstMatchPos.StartPos > 0 then begin
+    SelectText(firstMatchPos.StartPos, firstMatchPos.EndPos);
   end;
 end;
 
@@ -437,8 +672,7 @@ begin
     Exit;
   sFindText := GetFitFindText(text);
 
-  FWindow.Selection.start := iStart;
-  FWindow.Selection.end := iEnd;
+  SetSelectionPos(FWindow, iStart, iEnd);
   FWindow.Selection.Find.ClearFormatting;
   FWindow.Selection.Find.Text := sFindText;
   FWindow.Selection.Find.Replacement.Text := sFindText;
@@ -453,9 +687,7 @@ begin
   begin
     FWindow.Selection.Find.MatchByte:=False;
     FWindow.Selection.Find.MatchWildcards:=True;  //可以指定通配符及其他高级搜索条件
-  end
-  else
-  begin
+  end else begin
     FWindow.Selection.Find.MatchByte:=True;
     FWindow.Selection.Find.MatchWildcards:=False;
   end;
@@ -474,20 +706,21 @@ begin
       SelectTextInRange(text, 0, 0);
   end;
   Result := FWindow.Selection.Find.Found;
-  // 扩展选区
-//  if Result and (sFindText <> text)  then begin
-//    TOfficeHelper.MoveSelectionEnd(FWindow.Selection, Length(text)-Length(sFindText));
-//  end;
+  // 如果之前缩短了查找文本，这里扩展选区
+  if Result and (sFindText <> text)  then begin
+    TOfficeHelper.MoveSelectionEnd(FWindow.Selection, Length(text)-Length(sFindText));
+  end;
 end;
 
 procedure TOfficeHelper.SelectAndColorText(text: String; iPos, iLen: Integer;
-  color: Integer);
+  color: Integer; fromHead: Boolean);
 var
   i: Integer;
   findpos: array[0..255] of Integer;
   findcount: Integer;
+  selPos: TSelectionPos;
 begin
-  SelectText(text);
+  SelectText(text, fromHead);
   findcount := 0;
   while FWindow.Selection.Find.Found do
   begin
@@ -500,8 +733,9 @@ begin
 
   for i := 0 to findcount - 1 do
   begin
-    FWindow.Selection.start := findpos[i] + iPos - 1;
-    FWindow.Selection.end := findpos[i] + iPos - 1 + iLen;
+    selPos.StartPos := findpos[i] + iPos - 1;
+    selPos.EndPos := findpos[i] + iPos - 1 + iLen;
+    SetSelectionPos(FWindow, selPos);
     if (ReplaceWordNewLine(FWindow.Selection.Text) = text)  then begin
       FWindow.Selection.Font.Shading.BackgroundPatternColor := color;
     end;
@@ -513,9 +747,9 @@ procedure TOfficeHelper.SelectAndColorSubText(selStart, selEnd: Integer;
 var
   nPos: Integer;
   text: String;
+  selPos: TSelectionPos;
 begin
-  FWindow.Selection.start := selStart;
-  FWindow.Selection.end := selEnd;
+  SetSelectionPos(FWindow, selStart, selEnd);
   text := FWindow.Selection.Text;
   nPos := 0;
   repeat
@@ -523,61 +757,67 @@ begin
     nPos := PosFrom(subText, text, nPos + 1, False);
     if nPos > 0 then
     begin
-      FWindow.Selection.start := selStart + nPos - 1;
-      FWindow.Selection.end := selStart + nPos + Length(subText) - 1;
+      selPos.StartPos := selStart + nPos - 1;
+      selPos.EndPos := selStart + nPos + Length(subText) - 1;
+      SetSelectionPos(FWindow, selPos);
       FWindow.Selection.Font.Shading.BackgroundPatternColor := color;
     end;
   until nPos = 0;
 end;
 
-procedure TOfficeHelper.Find(sFind: string; resultList: TStringList);
+function TOfficeHelper.ReplaceText(text: String; replacement: String; fromHead: Boolean): Boolean;
 var
-  nStart, nEnd, nVertical, nHorizontal, nPos1, nPos2: Integer;
-  StrList: TStringList;
-  Range: Variant;
+  oleUnit,oleExtend: OleVariant;
+  sFindText: WideString;
 begin
-  if SameText('', sFind) then
-  begin
+  Result := False;
+  if text = '' then
     Exit;
+  sFindText := text;
+
+  oleUnit := wdStory;
+  oleExtend := wdMove;
+  //先定位到文档最前面
+  if fromHead then begin
+    FWindow.Selection.HomeKey(oleUnit, oleExtend);
+    SetSelectionPos(FWindow, 0, 0);
   end;
+  FWindow.Selection.Find.ClearFormatting;
+  FWindow.Selection.Find.Replacement.ClearFormatting;
+  FWindow.Selection.Find.Text:=sFindText;
+  FWindow.Selection.Find.Replacement.Text:=replacement;
+  FWindow.Selection.Find.Forward:=True;
+  FWindow.Selection.Find.Wrap:=wdFindContinue;
+  FWindow.Selection.Find.Format:=False;
+  FWindow.Selection.Find.MatchCase:=False;
+  FWindow.Selection.Find.MatchWholeWord:=False;
+  // 因为word不区分全角半角的"和'，因此特殊处理
+  if (sFindText = '"') or (sFindText = '''') then
+  begin
+    FWindow.Selection.Find.MatchByte:=False;
+    FWindow.Selection.Find.MatchWildcards:=True;
+  end else begin
+    FWindow.Selection.Find.MatchByte:=True;
+    FWindow.Selection.Find.MatchWildcards:=False;
+  end;
+  FWindow.Selection.Find.MatchSoundsLike:=False;
+  FWindow.Selection.Find.MatchAllWordForms:=False;
+  FWindow.Selection.Find.Execute(sFindText, False{MatchCase},
+    False{MatchWholeWord}, False{MatchWildcards}, False{MatchSoundsLike},
+    False{MatchAllWordForms}, True{Forward}, wdFindContinue{Wrap},
+    False{Format}, replacement{ReplaceWith}, wdReplaceAll{Replace});
+  Result := FWindow.Selection.Find.Found;
+end;
 
-  Screen.Cursor := crHourGlass;
-  StrList := resultList;
-  //记住原始滚动条位置
-  nStart      := FWindow.Selection.Start;
-  nEnd        := FWindow.Selection.End;
-  nVertical   := FWindow.ActivePane.VerticalPercentScrolled;
-  nHorizontal := FWindow.ActivePane.HorizontalPercentScrolled;
-  try
-
-    FWindow.Selection.Find.ClearFormatting;
-    FWindow.Selection.Find.Text    := sFind;
-    FWindow.Selection.Find.Forward := True;
-
-    while FWindow.Selection.Find.Execute do
-    begin
-      Range := FWindow.Selection.Range;
-      Range.Start := Range.Start - 20;
-      Range.End   := Range.End + 20;
-
-      nPos1 := FWindow.Selection.Start;
-      nPos2 := FWindow.Selection.End;
-      StrList.AddObject(Format('%d=%s', [nPos1, Range.Text]), TObject(nPos2));
-
-      Application.ProcessMessages;
-    end;
-
-  finally
-    //恢复原始位置
-    if StrList.Count > 0 then
-    begin
-      FWindow.ActivePane.VerticalPercentScrolled   := nVertical;
-      FWindow.ActivePane.HorizontalPercentScrolled := nHorizontal;
-      FWindow.Selection.Start := nStart;
-      FWindow.Selection.End   := nEnd;
-    end;
-
-    Screen.Cursor := crDefault;
+function TOfficeHelper.ReplaceTextInRange(text: String; replacement: String; startPos, endPos: Integer): Boolean;
+begin
+  Result := False;
+  SetSelectionPos(FWindow, startPos, startPos);
+  while SelectText(text, False) do begin
+    if FWindow.Selection.Start > endPos then
+      System.Break;
+    SetSelectionText(replacement);
+    Result := True;
   end;
 end;
 
@@ -592,8 +832,7 @@ end;
 class procedure TOfficeHelper.SetRangePos(range: OleVariant;
   selPos: TSelectionPos);
 begin
-  range.end := selPos.EndPos;
-  range.start := selPos.StartPos;
+  SetRangePos(range, selPos.StartPos, selPos.EndPos);
 end;
 
 class function TOfficeHelper.GetSelectionPos(SelectionOwner: OleVariant): TSelectionPos;
@@ -605,8 +844,7 @@ end;
 class procedure TOfficeHelper.SetSelectionPos(SelectionOwner: OleVariant;
   selPos: TSelectionPos);
 begin
-  SelectionOwner.Selection.end := selPos.EndPos;
-  SelectionOwner.Selection.start := selPos.StartPos;
+  SetSelectionPos(SelectionOwner, selPos.StartPos, selPos.EndPos);
 end;
 
 class procedure TOfficeHelper.MoveSelectionStart(selection: OleVariant;
@@ -619,10 +857,26 @@ end;
 
 class procedure TOfficeHelper.MoveSelectionEnd(selection: OleVariant;
   moveStep: Integer);
+var
+  endPos: Integer;
 begin
   if moveStep = 0 then
     Exit;
-  selection.End := selection.End + moveStep;
+  endPos := selection.End;
+  selection.End := endPos + moveStep;
+end;
+
+class procedure TOfficeHelper.SetRangePos(range: OleVariant; startPos, endPos: Integer);
+begin
+  range.end := EndPos;
+  range.start := StartPos;
+end;
+
+class procedure TOfficeHelper.SetSelectionPos(SelectionOwner: OleVariant;
+  startPos, endPos: Integer);
+begin
+  SelectionOwner.Selection.end := EndPos;
+  SelectionOwner.Selection.start := StartPos;
 end;
 
 end.

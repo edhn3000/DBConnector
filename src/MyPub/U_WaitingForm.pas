@@ -4,133 +4,89 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, U_CommonFunc, ExtCtrls, U_MyProgBar;
+  Dialogs, ActiveX, GIFImg, ExtCtrls, StdCtrls;
 
 type
+  TThreadProc = procedure of object;
+  TTaskThread = class(TThread)
+  private
+    Fhandle: HWND;
+  public
+    sWritContent: string;
+    sCheckSetting: string;
+    result: string;
+    Proc: TThreadProc;
+    constructor Create(CreateSuspended: Boolean;formhandle: HWND);overload;
+    procedure Execute; override;
+  end;
+
+  { TWaitingForm }
   TWaitingForm = class(TForm)
+    Image1: TImage;
     lblHint: TLabel;
-    pnl1: TPanel;
-    lblTitle: TLabel;
-    btnCancel: TButton;
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure FormDestroy(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure btnCancelClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     { Private declarations }
-    FProgBar: TMyProgbar;
-    FCanceled: Boolean;  //ÍË³ö±êÖ¾
-
-    function GetHintMsg: string;
-    procedure SetHintMsg(value: string);
-    function GetTitleMsg: string;
-    procedure SetTitleMsg(value: string);
-    procedure AdjustLayout;  
   public
-    property ProgBar: TMyProgbar read FProgBar;
-    property HintMsg: string read GetHintMsg write SetHintMsg;
-    property TitleMsg: string read GetTitleMsg write SetTitleMsg;
-    property Canceled: Boolean read FCanceled write FCanceled;
-  public
-    procedure AddProgBarPercent(fspercent: Single; MaxTo: Single);
     { Public declarations }
+    FThread: TTaskThread;
+    procedure SetMesasge(s: String);
+    procedure StartThread(AProc: TThreadProc);
   end;
-  
-var
-  WaitingForm: TWaitingForm;
 
 implementation
 
 {$R *.dfm}
 
-procedure TWaitingForm.FormClose(Sender: TObject;
-  var Action: TCloseAction);
+{ TTaskThread }
+
+constructor TTaskThread.Create(CreateSuspended: Boolean; formhandle: HWND);
 begin
-  Action := caFree;
+  Fhandle := formhandle;
+  inherited Create(CreateSuspended);
+end;
+
+procedure TTaskThread.Execute;
+begin
+  inherited;
+  if Assigned(Proc) then begin
+    Proc;
+  end;
+  PostMessage(Fhandle,WM_CLOSE,0,0);
+end;
+
+{ TTThreadForm }
+
+procedure TWaitingForm.FormCreate(Sender: TObject);
+begin
+  FThread := TTaskThread.Create(True,Handle);
 end;
 
 procedure TWaitingForm.FormDestroy(Sender: TObject);
 begin
-  WaitingForm := nil;
+  if Assigned(FThread) and (not FThread.Terminated) then
+    FThread.Terminate;
+  FreeAndNil(FThread);
 end;
 
-procedure TWaitingForm.FormCreate(Sender: TObject);
+procedure TWaitingForm.FormShow(Sender: TObject);
 begin
-  lblTitle.Caption := '';
-  lblHint.Caption := '';
-  FProgBar := TMyProgbar.Create(Self);
-  with FProgBar do
-  begin     
-    Init(pnl1, False);
-    AdjustRect(pnl1.ClientRect);
-    Visible := True;
-  end;
-  FCanceled := False;
+  TGIFImage(image1.Picture.Graphic).AnimationSpeed := 120;
+  TGIFImage(Image1.Picture.Graphic).Animate := True;
 end;
 
-procedure TWaitingForm.AddProgBarPercent(fspercent: Single; MaxTo: Single);
+procedure TWaitingForm.SetMesasge(s: String);
 begin
-  ProgBar.AddPercent(fspercent, MaxTo);
+  lblHint.Caption := s;
+  lblHint.Left := Round((Self.Width - lblHint.Width)/2);
 end;
 
-function TWaitingForm.GetHintMsg: string;
+procedure TWaitingForm.startThread(AProc: TThreadProc);
 begin
-  Result := lblHint.Caption;
-end;
-
-procedure TWaitingForm.SetHintMsg(value: string);
-begin
-  lblHint.Caption := value;
-  Application.ProcessMessages;
-end;
-
-function TWaitingForm.GetTitleMsg: string;
-begin
-  Result := lblTitle.Caption;
-end;
-
-procedure TWaitingForm.SetTitleMsg(value: string);
-begin
-  lblTitle.AutoSize := True;
-  lblTitle.Caption := value;
-  AdjustLayout;
-  Application.ProcessMessages;
-end;
-
-procedure TWaitingForm.AdjustLayout;
-const
-  TITLE_MARGIN = 24;
-  PNL_MARGIN = 16;
-var
-  titlewidth: Integer;
-begin
-  titlewidth := Canvas.TextWidth(lblTitle.Caption);
-
-  if titlewidth > Width then
-  begin
-    lblTitle.Left := TITLE_MARGIN;
-    Width := lblTitle.Left + lblTitle.Width + TITLE_MARGIN
-  end
-  else
-  begin
-    lblTitle.Left := Trunc((Width - titlewidth)/2);
-  end;
-  pnl1.Left := PNL_MARGIN;
-  pnl1.Width := Width - PNL_MARGIN*2;
-  ProgBar.AdjustRect(pnl1.ClientRect);  
-
-  lblTitle.Top := 8;
-  lblHint.Top := lblTitle.Top*2 + lblTitle.Height;
-  pnl1.Top := lblHint.Top + lblHint.Height + 5;
-  btnCancel.Top := pnl1.Top + pnl1.Height + 5;
-  btnCancel.Left := Trunc((Width - btnCancel.Width)/2);
-  Height := pnl1.Top + pnl1.Height + 40;
-end;
-
-procedure TWaitingForm.btnCancelClick(Sender: TObject);
-begin
-  FCanceled := True;
-  btnCancel.Enabled := False;
+  FThread.Proc := AProc;
+  FThread.Start;
 end;
 
 end.

@@ -1,4 +1,4 @@
-object F_MAIN: TF_MAIN
+object F_DBConnectorMain: TF_DBConnectorMain
   Left = 317
   Top = 102
   Caption = 'DBConnector'
@@ -190,6 +190,10 @@ object F_MAIN: TF_MAIN
                   inherited pgcClient: TPageControl
                     ActivePage = frmDBOperateMain.tsOutPut
                     inherited tsOutPut: TTabSheet
+                      ExplicitLeft = 4
+                      ExplicitTop = 25
+                      ExplicitWidth = 609
+                      ExplicitHeight = 311
                       inherited pnl7: TPanel
                         inherited pnl8: TPanel
                           inherited tlb1: TToolBar
@@ -421,7 +425,6 @@ object F_MAIN: TF_MAIN
             Align = alClient
             Images = DataModule1.ilTree
             Indent = 19
-            MultiSelect = True
             MultiSelectStyle = [msControlSelect, msShiftSelect]
             ParentShowHint = False
             ReadOnly = True

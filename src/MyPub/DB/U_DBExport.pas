@@ -7,8 +7,9 @@ uses
   SysUtils, U_UIUtil, U_DBConnectInterface;
 
 type     
-  TDBExportType = (detSql, detXls, detTxt);
-  
+  TDBExportType = (detSql, detTxt, detXls, detCsv);
+
+  { TDBExport }
   TDBExport = class
   private
     FDBConnect: IDBConnect;
@@ -29,7 +30,7 @@ type
 implementation
 
 uses
-  TypInfo;
+  TypInfo, U_ExportUtil;
 
 { TDBExport }
 
@@ -92,15 +93,15 @@ begin
   if not FDBConnect.ExecQuery(AQry, Format('select * from %s', [tableName])) then
     Exit;
   case exportType of
-  detXls:  
-    Result := UIUtil.ExportToExcel(AQry, sExportFileName, tableName);  
+  detXls:
+    Result := TExportUtil.ExportToExcel(AQry, sExportFileName, tableName);
   detSql:
     Result := FDBConnect.ExportQuery(AQry, sExportFileName);
   else
   begin
     slstExport := TStringList.Create;
     try
-      UIUtil.FillExportQueryList(AQry, slstExport, '  ', '-');
+      TExportUtil.FillExportQueryList(AQry, slstExport, '  ', '-');
       slstExport.SaveToFile( sExportFileName );
       Result := True;
     finally

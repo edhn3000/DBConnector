@@ -26,6 +26,7 @@ type
   ['{9337BA96-BADD-43A2-8878-D4D3F418F481}']
 
     function GetLastError: string;
+    function GetLastExecTime: TDateTime;
     function GetLastElapsedMilis: Double;
     function GetDBType: TDBType;
     function GetDBEngineType: TDBEngineType;      

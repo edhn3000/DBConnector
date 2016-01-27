@@ -27,7 +27,7 @@
 			<DCC_UsePackage>rtl;vcl;vclx;vclimg;vclactnband;dbrtl;vcldb;bdertl;vcldbx;vcltouch;xmlrtl;dsnap;dsnapcon;vclib;ibxpress;adortl;IndyCore;IndySystem;IndyProtocols;VclSmp;vclie;inet;websnap;webdsnap;inetdb;inetdbbde;inetdbxpress;soaprtl;vclribbon;dbexpress;DbxCommonDriver;DataSnapIndy10ServerTransport;DataSnapProviderClient;DataSnapServer;DbxClientDriver;DBXInterBaseDriver;DBXMySQLDriver;dbxcds;DBXFirebirdDriver;DBXSybaseASEDriver;DBXSybaseASADriver;DBXOracleDriver;DBXMSSQLDriver;DBXInformixDriver;DBXDb2Driver;SynEdit_R2010;TeeTree2D14Tee9;TeePro914;TeeUI914;Tee914;TeeLanguage914;TeeImage914;TeeWorld914;TeeGL914;TeeDB914;TeeMaker114;DBCtrl2010;CnPack_D2010;intrawebdb_100_140;Intraweb_100_140;bsfd2010;NTKOPkg;fHintTree;acnt2010_R</DCC_UsePackage>
 			<DCC_DcuOutput>dcu</DCC_DcuOutput>
 			<DCC_ExeOutput>..\MyTools\DBConnector</DCC_ExeOutput>
-			<DCC_UnitSearchPath>..\MyPub;..\MyPub\Common;..\MyPub\IO;..\MyPub\Log;..\MyPub\regex;..\MyPub\UI;..\MyPub\Console;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\Components\TfHintTree;..\Components\TfDBGrid;..\OtherPub;..\OtherPub\mysql;..\OtherPub\cnvcl;..\OtherPub\cnvcl\Source\Common;..\OtherPub\cnvcl\Source\Graphics;..\OtherPub\Synedit\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\OtherPub\AlphaControls\AlphaControls8.20dcu\D2010\;..\OtherPub\sqlite\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_UnitSearchPath>..\MyPub;..\MyPub\Common;..\MyPub\IO;..\MyPub\Log;..\MyPub\regex;..\MyPub\UI;..\MyPub\Office;..\MyPub\Console;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\Components\TfHintTree;..\Components\TfDBGrid;..\OtherPub;..\OtherPub\mysql;..\OtherPub\cnvcl;..\OtherPub\cnvcl\Source\Common;..\OtherPub\cnvcl\Source\Graphics;..\OtherPub\Synedit\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\OtherPub\AlphaControls\AlphaControls8.20dcu\D2010\;..\OtherPub\sqlite\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
@@ -62,8 +62,8 @@
 						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">9</VersionInfo>
-						<VersionInfo Name="Release">6</VersionInfo>
-						<VersionInfo Name="Build">1507</VersionInfo>
+						<VersionInfo Name="Release">7</VersionInfo>
+						<VersionInfo Name="Build">1601</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -75,7 +75,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription">集成多数据库访问功能的数据库工具</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.9.6.1507</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.9.7.1601</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>
@@ -101,7 +101,7 @@
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="UF_MAIN.pas">
-				<Form>F_MAIN</Form>
+				<Form>F_DBConnectorMain</Form>
 			</DCCReference>
 			<DCCReference Include="U_Const.pas"/>
 			<DCCReference Include="U_Pub.pas"/>
@@ -186,7 +186,7 @@
 			<DCCReference Include="..\MyPub\Office\U_ExcelExportor.pas"/>
 			<DCCReference Include="..\MyPub\DB\U_DBExport.pas"/>
 			<DCCReference Include="..\MyPub\U_Convertor.pas"/>
-			<DCCReference Include="..\MyPub\U_TextFileWriter.pas"/>
+			<DCCReference Include="..\MyPub\IO\U_TextFileWriter.pas"/>
 			<DCCReference Include="..\MyPub\DB\DBConnect\U_TriggerInfo.pas"/>
 			<DCCReference Include="..\MyPub\DB\DBConnect\U_IndexInfo.pas"/>
 			<DCCReference Include="..\MyPub\DB\U_DBConnectInterface.pas"/>
@@ -199,6 +199,7 @@
 			<DCCReference Include="..\MyPub\Log\U_Log.pas"/>
 			<DCCReference Include="..\MyPub\Log\U_Log4d.pas"/>
 			<DCCReference Include="..\MyPub\thread\U_ThreadPool.pas"/>
+			<DCCReference Include="..\MyPub\IO\U_ExportUtil.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
