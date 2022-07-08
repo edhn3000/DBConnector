@@ -122,9 +122,9 @@ const
     'Provider=Microsoft.ACE.OLEDB.12.0;'
      + 'Data Source=%s;'
      + '%s'                                 // Jet OLEDB:System database=%s;
-//     + 'Persist Security Info=False;'
+     + 'Persist Security Info=False;'
      + 'User ID=%s;'
-     + 'Password=%s;';
+     + 'Jet OLEDB:Database Password=%s;';
   SYSDB_ACCESS2007 = SYSDB_ACCESS;
 
   CONNSTR_DBF =
@@ -142,8 +142,8 @@ const
 
   CONNSTR_SYBASE =
 //  'Provider=MSDASQL.1;Driver={SYBASE SYSTEM 12};srvr=%s;db=%s;uid=%s;pwd=%s';
-  'Provider=Sybase.ASEOLEDBProvider.2;' +
-  'Initial Catalog=%s;Language=us_english;Character Set=cp936;' +
+  'Provider=Sybase.ASEOLEDBProvider.2;' + // ;
+  'Character Set=cp850;Initial Catalog=%s;' +
   'Server Name=%s;Server Port Address=%s;User ID=%s;Password=%s';
 
   TNSNAME_ORACLE =
@@ -250,9 +250,7 @@ begin
     td := GetTypeData(ti);
     if (nDBT <= td^.MaxValue) and (nDBT >= td^.MinValue) then
       Result := TDBEngineType(nDBT);
-  end
-  else
-  begin
+  end else begin
     for dbet := Low(TDBEngineType) to High(TDBEngineType) do
       if SameText(DBEngineTypeToStr(dbet, False), s) then
       begin
@@ -264,8 +262,10 @@ end;
 
 function BuildAccessDataSource(sDb, sSecured: string): string;
 begin
-  Result := Format('%1:s%0:s%2:s',[
-          C_sSEPARATOR_DATASOURCE,sDb, sSecured])
+//  Result := Format('%1:s%0:s%2:s',[
+//          C_sSEPARATOR_DATASOURCE,sDb, sSecured]);
+  Result := Format('%s%s%s',[
+          sDb, C_sSEPARATOR_DATASOURCE, sSecured]);
 end;
 
 function BuildOracleDataSource(SID, IP, Port, Protocol: string;
@@ -280,14 +280,19 @@ end;
 
 function BuildSybaseDataSource(ServerName, Port, DataBaseName: string): string;
 begin
-  Result := Format('%1:s%0:s%2:s%0:s%%3:s%',
-            [C_sSEPARATOR_DATASOURCE, ServerName, Port, DataBaseName]);
+// DataBaseName为空串时，%3:s%可能直接变为结果一部分
+//  Result := Format('%1:s%0:s%2:s%0:s%%3:s%',
+//            [C_sSEPARATOR_DATASOURCE, ServerName, Port, DataBaseName]);
+  Result := Format('%s%s%s%s%s',
+            [ServerName, C_sSEPARATOR_DATASOURCE, Port, C_sSEPARATOR_DATASOURCE , DataBaseName]);
 end;
 
 function BuildMySqlDataSource(Host, DataBaseName, CharSet: string): string;
 begin
-  Result := Format('%1:s%0:s%2:s%0:s%3:s', [
-            C_sSEPARATOR_DATASOURCE, Host, DataBaseName, CharSet])
+//  Result := Format('%1:s%0:s%2:s%0:s%3:s', [
+//            C_sSEPARATOR_DATASOURCE, Host, DataBaseName, CharSet]);
+  Result := Format('%s%s%s%s%s', [
+            Host, C_sSEPARATOR_DATASOURCE, DataBaseName, C_sSEPARATOR_DATASOURCE, CharSet]);
 end;
 
 

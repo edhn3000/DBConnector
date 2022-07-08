@@ -14,6 +14,17 @@ uses
   U_DBEngine{$IFDEF VER180}, DBXCommon{$ENDIF}, SimpleDS, U_DBEngineInterface;
 
 type
+  { TDBExpressQuery }
+  TDBExpressQuery = class(TDBQuery)
+  protected
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function GetConnection(): TCustomConnection; override;
+    procedure GetTableNames(List: TStrings; SystemObject: Boolean); override;
+  end;
   
   { TDBExpressEngine }
   TDBExpressEngine = class(TDBEngine)
@@ -71,6 +82,40 @@ type
 
 implementation
 
+{ TDBExpressQuery }
+
+constructor TDBExpressQuery.Create;
+begin
+
+end;
+
+destructor TDBExpressQuery.Destroy;
+begin
+
+  inherited;
+end;
+
+function TDBExpressQuery.GetConnection: TCustomConnection;
+begin
+  Result := nil;
+  if FDataSet is TSQLQuery then
+    Result := TSQLQuery(FDataSet).SQLConnection
+  else if FDataSet is TSQLDataSet then
+    Result := TSQLDataSet(FDataSet).SQLConnection
+  else if FDataSet is TSimpleDataSet then
+    Result := TSimpleDataSet(FDataSet).Connection;
+end;
+
+procedure TDBExpressQuery.GetTableNames(List: TStrings; SystemObject: Boolean);
+begin
+  if FDataSet is TSQLQuery then
+    TSQLQuery(FDataSet).SQLConnection.GetTableNames(List, SystemObject)
+  else if FDataSet is TSQLDataSet then
+    TSQLDataSet(FDataSet).SQLConnection.GetTableNames(List, SystemObject)
+  else if FDataSet is TSimpleDataSet then
+    TSimpleDataSet(FDataSet).Connection.GetTableNames(List, SystemObject);
+end;
+
 { TDBExpressEngine }
 
 constructor TDBExpressEngine.Create;
@@ -88,7 +133,8 @@ begin
 
   FConnection := FSimpleDataSet.Connection;
   FDataSet := FSimpleDataSet;
-  FDBEngineType := dbetDBExpress; 
+//  FDataSet.InitQuery(FSimpleDataSet);
+  FDBEngineType := dbetDBExpress;
 end;
 
 destructor TDBExpressEngine.Destroy;
@@ -154,6 +200,7 @@ begin
 
     FConnection := FSimpleDataSet.Connection;
     FDataSet := FSimpleDataSet.DataSet;
+//    FDataSet.InitQuery(FSimpleDataSet.DataSet);
     Result := FConnection.Connected;
   finally
     slst.Free;

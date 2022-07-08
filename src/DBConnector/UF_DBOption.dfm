@@ -84,17 +84,13 @@ inherited F_DBOption: TF_DBOption
       Top = 201
       Width = 522
       Height = 202
-      ActivePage = tsDBF
+      ActivePage = tsMySql
       Align = alClient
       MultiLine = True
       TabOrder = 1
       OnChange = pgcOptionsChange
       object ts1: TTabSheet
         Caption = 'Access'
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object lbl1: TLabel
           Left = 16
           Top = 20
@@ -153,10 +149,6 @@ inherited F_DBOption: TF_DBOption
       object ts2: TTabSheet
         Caption = 'Oracle'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object lblOraSID: TLabel
           Left = 16
           Top = 20
@@ -250,10 +242,6 @@ inherited F_DBOption: TF_DBOption
       object tsSybase: TTabSheet
         Caption = 'Sybase'
         ImageIndex = 2
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object lbl9: TLabel
           Left = 16
           Top = 128
@@ -307,10 +295,6 @@ inherited F_DBOption: TF_DBOption
       object tsMySql: TTabSheet
         Caption = 'MySql'
         ImageIndex = 3
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object Label1: TLabel
           Left = 16
           Top = 20
@@ -354,22 +338,17 @@ inherited F_DBOption: TF_DBOption
           TabOrder = 1
           OnDropDown = edtmslDataBaseDropDown
         end
-        object edtMysqlCharset: TEdit
-          Left = 88
-          Top = 72
-          Width = 121
+        object cbbMslCharset: TComboBox
+          Left = 90
+          Top = 80
+          Width = 87
           Height = 20
           TabOrder = 2
-          Text = 'GBK'
         end
       end
       object tsSqlite: TTabSheet
         Caption = 'SQLite'
         ImageIndex = 4
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object Label9: TLabel
           Left = 16
           Top = 20
@@ -404,10 +383,6 @@ inherited F_DBOption: TF_DBOption
       object tsDBF: TTabSheet
         Caption = 'DBF'
         ImageIndex = 5
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object Label11: TLabel
           Left = 16
           Top = 20

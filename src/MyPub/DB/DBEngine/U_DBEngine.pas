@@ -16,6 +16,25 @@ uses
   ADODB, DB, Classes, Variants, DBTables, U_DBEngineInterface;
 
 type
+  { TDBQuery }
+  TDBQuery = class(TDataSet)
+  protected
+    FDataSet: TDataSet;
+    FIsInnerDataSet: Boolean;   // 是否内部管理的DataSet
+  public
+    property DataSet: TDataSet read FDataSet;
+
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure InitQuery;overload;
+    procedure InitQuery(ds: TDataSet);overload;
+
+    function GetConnection(): TCustomConnection; virtual; abstract;
+    procedure GetTableNames(List: TStrings; SystemObject: Boolean); virtual; abstract;
+
+  end;
+
 { TDBEngine 该类有抽象方法，需要用实际的DBEngine类来实例化 }
   TDBEngine = class(TInterfacedObject, IDBEngine)
   private
@@ -32,7 +51,8 @@ type
 
     FConnection: TCustomConnection;
     FDataSet   : TDataSet;
-    FStoredProc: TStoredProc; 
+//    FDBQuery   : TDBQuery;
+    FStoredProc: TStoredProc;
     FDBEngineType  : TDBEngineType; 
     FMaxRecords    : Integer;
     FPageSize      : Integer;
@@ -148,7 +168,7 @@ type
 
   function GetMillisFromDateTime(dt: TDateTime): Double;
 
-implementation  
+implementation
 
 uses
   SysUtils, Forms;
@@ -182,7 +202,31 @@ begin
       Break;
     end;
   end;
-end;   
+end;
+
+{ TDBQuery }
+
+constructor TDBQuery.Create;
+begin
+
+end;
+
+destructor TDBQuery.Destroy;
+begin
+
+  inherited;
+end;
+
+procedure TDBQuery.InitQuery;
+begin
+  FIsInnerDataSet := True;
+end;
+
+procedure TDBQuery.InitQuery(ds: TDataSet);
+begin
+  FIsInnerDataSet := False;
+  FDataSet := ds;
+end;
 
 { TDBEngine }
 

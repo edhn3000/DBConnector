@@ -61,7 +61,7 @@ uses
   U_DataMoudle in 'U_DataMoudle.pas' {DataModule1: TDataModule},
   U_DBTreeFunc in 'U_DBTreeFunc.pas',
   U_DBAHelp in 'U_DBAHelp.pas',
-  U_ExcelExportor in '..\MyPub\Office\U_ExcelExportor.pas',
+  U_ExcelObject in '..\MyPub\Office\U_ExcelObject.pas',
   U_DBExport in '..\MyPub\DB\U_DBExport.pas',
   U_Convertor in '..\MyPub\U_Convertor.pas',
   U_TextFileWriter in '..\MyPub\IO\U_TextFileWriter.pas',

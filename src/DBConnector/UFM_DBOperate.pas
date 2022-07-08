@@ -309,29 +309,41 @@ end;
 procedure TFM_DBOperate.actExportExecute(Sender: TObject);
 const
   C_sFilterStr = 'sql脚本*.sql|*.sql|文本文件*.txt|*.txt|Excel文件*.xls|*.xls|CSV文件*.csv|*.csv';
+  function FitFileExt(sFileName: string; exts: array of String): String;
+  var
+    i: Integer;
+    bMatch: Boolean;
+  begin
+    Result := sFileName;
+    bMatch := False;
+    for i := 0 to High(exts) do begin
+      if SameText(exts[i], ExtractFileExt(Result)) then begin
+        bMatch := True;
+        Break;
+      end;
+    end;
+    if not bMatch then
+      Result := Result + exts[0];
+  end;
   function FitFileName(sFileName: string; dlgExport: TSaveDialog):string;
   begin
     Result := sFileName;
     case dlgExport.FilterIndex of
       1:
       begin
-        if '.sql' <> ExtractFileExt(Result) then
-          Result := Result + '.sql';
+        Result := FitFileExt(Result, ['.sql']);
       end;
       2:
       begin
-        if '.txt' <> ExtractFileExt(Result) then
-          Result := Result + '.txt';
+        Result := FitFileExt(Result, ['.txt']);
       end;
       3:
       begin
-        if '.xls' <> ExtractFileExt(Result) then
-          Result := Result + '.xls';
+        Result := FitFileExt(Result, ['.xls', 'xlsx']);
       end;
       4:
       begin
-        if '.xls' <> ExtractFileExt(Result) then
-          Result := Result + '.csv';
+        Result := FitFileExt(Result, ['.csv']);
       end;
     end;
   end;

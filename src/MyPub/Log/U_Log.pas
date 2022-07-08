@@ -10,6 +10,7 @@ const
   C_LogLevel_WARN = 3;
   C_LogLevel_ERROR = 4;
   C_ARY_LOG_LEVEL : array[1..4] of string = ('调试', '信息', '警告', '错误');
+  C_ARY_LOG_LEVEL_EN : array[1..4] of string = ('Debug', 'Info', 'Warn', 'Error');
 
 type
   { TAbstractLog }

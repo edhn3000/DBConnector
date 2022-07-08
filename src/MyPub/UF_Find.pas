@@ -380,8 +380,6 @@ end;
 
 function TF_Find.DoFindAtTree(tvw: TTreeView;sSearchText: string; bNext: Boolean):Boolean;
 var
-  sWholeText: string;
-  bFind: Boolean;
   nodeStart, node: TTreeNode;
 begin
   Result := False;

@@ -168,7 +168,7 @@ begin
 
     DBconfig.SybServerName := ReadString(C_sINI_SectionSybase, 'ServerName', '');
     DBconfig.SybDataBaseName := ReadString(C_sINI_SectionSybase, 'DataBaseName', '');
-    DBconfig.SybPort := ReadString(C_sINI_SectionSybase, 'Port', '');
+    DBconfig.SybPort := ReadString(C_sINI_SectionSybase, 'SybPort', '');
     DBconfig.SybUser := Base64Decode(ReadString(C_sINI_SectionSybase, 'User', ''));
     DBconfig.SybPwd := Base64Decode(ReadString(C_sINI_SectionSybase, 'Pwd', ''));
 //    DBconfig.SybType := ReadInteger(C_sINI_SectionSybase, 'Type', 0);

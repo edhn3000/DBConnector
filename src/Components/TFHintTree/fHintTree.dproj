@@ -81,7 +81,7 @@
 						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
 					</Parameters>
 					<Language>
-						<Language Name="RootDir">E:\MyProgram\Delphi\Components\TFHintTree\</Language>
+						<Language Name="RootDir">..\..\..\GitHub\Delphi\DBConnector\src\Components\TFHintTree\</Language>
 					</Language>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>

@@ -1,0 +1,45 @@
+快捷键：
+界面快捷键
+   编辑表           F7
+   执行             F8
+   参数             Ctrl+o
+编辑器快捷键，当光标定位到编辑器上有效。
+   编辑器保存       Ctrl+s
+   编辑器自动换行   Ctrl+w
+
+DBConnector命令 以DBConnector+空格开头 不区分大小写 如DBConnector help
+  命令部分                         说明
+  Help				命令帮助
+  ShowSettings			显示所有当前设置
+  SetDefault			重置所有设置为默认
+  MaxRecords  [数字]		设置最大记录数。默认500
+  Conn				连接数据库
+  Exit				断开连接
+  Var				定义变量 见var命令说明
+  Sql				专用sql。支持blob更新，见sql命令说明
+  Export			导出数据
+
+注：所有命令可以被包含在单行注释中，如在单行注释中命令后不跟分号也会认为是一行语句，
+不会和后面内容连起来解析
+更多说明请看《DBConnector操作手册》
+
+DBNames.xml设置方式
+DBConnector对最近连接成功的配置会进行记录，
+<db>
+  <dbtype>数据库类型字符串</dbtype>
+  <dbenginetype>数据库引擎</dbenginetype>
+  <dbshownname>自定义别名</dbshownname>
+  <datasource>(对于access数据库)数据库文件路径,工作组文件路径(默认无)</datasource>
+  <datasource>(对于oracle数据库)服务名,主机ip,端口(默认1521),协议(默认tcp)</datasource>
+  <username>用户名</username> 
+  <password>密码</password>
+</db>
+例如
+<db>
+  <dbtype>oracle</dbtype>
+  <dbenginetype>ado</dbenginetype>
+  <dbshownname>本机Oracle</dbshownname>
+  <datasource>fengyq,172.16.16.115</datasource>
+  <username>fyq,taxuser,veruser</username>
+  <password>oracle</password>
+</db>

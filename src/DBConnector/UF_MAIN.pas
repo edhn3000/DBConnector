@@ -716,8 +716,10 @@ begin
       g_frmDBOperate.ExecuteSql(sSqlText);
       Result := g_Global.DBConnect.LastOperSucc;
     end
-    else
+    else begin
       Result := False;
+      DoAfterExecSqlThread;
+    end;
   finally
 //    actExecSelSql.Enabled := True;
 //    actManExecSql.Enabled := True;

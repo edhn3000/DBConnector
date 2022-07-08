@@ -1,3 +1,9 @@
+{
+ @author  fengyq
+ @comment Wps助手单元
+ @version 1.0
+ @version 2015/11/09
+}
 unit U_WPSHelper;
 
 interface
@@ -7,15 +13,19 @@ uses
   ComCtrls, ComObj, ActiveX, WPS_TLB, Office_TLB, U_OfficeHelper;
 
 type
+  { TWpsAPIVer }
+  TWpsAPIVer = (wavAuto, wavV8, wavV9);
+  { TWpsHelper }
   TWpsHelper = class(TOfficeHelper)
   private
+    FApiVer: TWpsAPIVer;
 
   protected
 
+    function InitApplication: Boolean; override;
+
   public
-    constructor Create; overload;
-    constructor Create(useActiveApp: Boolean); overload;
-    destructor Destroy;override;
+    constructor Create;
 
     // 打开Wps文档
     procedure NewFile(sFileName: String); override;
@@ -23,17 +33,11 @@ type
     // 关闭Wps文档
     procedure CloseFile(bSave: Boolean = false); override;
 
+    function GetDocumentWindow(doc: IDispatch): IDispatch; override;
+
     function ExecuteControl(controlType: TOleEnum; tag: String): Boolean; override;
-  end;
-
-  TWpsV9Helper = class(TWpsHelper)
-  protected
-
-  public
-    constructor Create(useActiveApp: Boolean); overload;
 
   end;
-
 
 implementation
 
@@ -41,39 +45,38 @@ implementation
 
 constructor TWpsHelper.Create;
 begin
-  FOpend := False;
-  Create(False);
+  inherited Create;
 end;
 
-constructor TWpsHelper.Create(useActiveApp: Boolean);
+function TWpsHelper.InitApplication: Boolean;
 begin
-  FIsInstalled := CreateApplication(useActiveApp, 'Wps.Application');
-  FCloseOnFree := not FUseActiveApp;
-end;
-
-destructor TWpsHelper.Destroy;
-begin
-  if FCloseOnFree then
-  begin
-    try
-      if FOpend then
-        CloseFile(False);
-    except
-      on e: Exception do
-        OutputDebugString(PChar('TWpsHelper.Destroy close file error！' + e.Message));
-    end;
-  end;
-  try
-    if not FUseActiveApp then
-      FApplicatioin.Quit(wdDoNotSaveChanges);
-  except
-    on e: Exception do
-      OutputDebugString(PChar('TWpsHelper.Destroy quit application error！' + e.Message));
+  if FIsAppInited then begin
+    Result := True;
+    Exit;
   end;
 
-  FApplicatioin := Unassigned;
-  FDocument := Unassigned;
-  inherited;
+  FIsInstalled := False;
+  FIsAppInited := False;
+  if FApiVer = wavV9 then begin
+    FIsAppInited := CreateApplication(FUseActiveApp, 'Kwps.Application');
+    if not FIsAppInited then
+      FIsAppInited := CreateApplication(FUseActiveApp, 'Word.Application');
+  end else if FApiVer = wavV8 then begin
+    FIsAppInited := CreateApplication(FUseActiveApp, 'Wps.Application');
+  end else begin
+    FIsAppInited := CreateApplication(FUseActiveApp, 'Kwps.Application');
+    if not FIsAppInited then
+      FIsAppInited := CreateApplication(FUseActiveApp, 'Word.Application');
+    if not FIsAppInited then
+      FIsAppInited := CreateApplication(FUseActiveApp, 'Wps.Application');
+  end;
+
+  if FIsAppInited then begin
+    FIsInstalled := True;
+    FIsAppInited := True;
+    FCloseOnFree := not FUseActiveApp;
+  end;
+  Result := FIsAppInited;
 end;
 
 procedure TWpsHelper.CloseFile(bSave: Boolean);
@@ -89,24 +92,50 @@ end;
 
 procedure TWpsHelper.NewFile(sFileName: String);
 begin
+  InitApplication;
+
   FFileName := sFileName;
-  FApplicatioin.Documents.Add;
-//  FWordApp := WordApplication(IDispatch(FApplicatioin));
-  FDocument := FApplicatioin.ActiveDocument;
+  FApplication.Documents.Add;
+  FDocument := FApplication.ActiveDocument;
 end;
 
 procedure TWpsHelper.OpenFile(sFileName: String; readOnly: Boolean);
 begin
+  InitApplication;
+
   FFileName := sFileName;
   if readOnly then
-    FApplicatioin.Documents.Open(sFileName, False, True)
+    FApplication.Documents.Open(sFileName, False, True)
   else
-    FApplicatioin.Documents.Open(sFileName);
-  FApplicatioin.Options.SaveNormalPrompt := False;
-//  FWordApp := WordApplication(IDispatch(FApplicatioin));
-  FDocument := FApplicatioin.ActiveDocument;
-  FWindow := FApplicatioin.ActiveWindow;
+    FApplication.Documents.Open(sFileName);
+  FApplication.Options.SaveNormalPrompt := False;
+  FDocument := FApplication.ActiveDocument;
+  FWindow := FApplication.ActiveWindow;
   FOpend := True;
+end;
+
+function TWpsHelper.GetDocumentWindow(doc: IDispatch): IDispatch;
+var
+  i: Integer;
+  wndIndex: OleVariant;
+  d: WPS_TLB._Document;
+  wnd: WPS_TLB.Window;
+begin
+  d := (doc as WPS_TLB._Document);
+  Result := nil;
+  if d.Windows.Count = 1 then begin
+    wndIndex := 1;
+    Result := d.Windows.Item(wndIndex);
+  end else begin
+    for i := 1 to d.Windows.Count do begin
+      wndIndex := i;
+      wnd := d.Windows.Item(wndIndex);
+      if wnd.Document = doc then begin
+        Result := wnd;
+        System.Break;
+      end;
+    end;
+  end;
 end;
 
 function TWpsHelper.ExecuteControl(controlType: TOleEnum; tag: String): Boolean;
@@ -115,7 +144,7 @@ var
   cmdCtrl: OleVariant;
 begin
   Result := False;
-  cmdBar := FApplicatioin.CommandBars.Item['Standard'];
+  cmdBar := FApplication.CommandBars.Item['Standard'];
   cmdCtrl := cmdBar.FindControl(msoControlButton, 1, tag, 1, true);
   // TODO 这个VarisNull检测常常不好使
   if not VarisNull(cmdCtrl) then
@@ -127,19 +156,6 @@ begin
       Result := False;
     end;
   end;
-end;
-
-{ TWpsV9Helper }
-
-constructor TWpsV9Helper.Create(useActiveApp: Boolean);
-begin
-  // V9版的API，className是Kwps.Application，如配置工具设置了兼容Word，也可以使用Word.Application
-  FIsInstalled := CreateApplication(useActiveApp, 'Kwps.Application');
-  if not FIsInstalled then begin
-    FIsInstalled := CreateApplication(useActiveApp, 'Word.Application');
-  end;
-
-  FCloseOnFree := not FUseActiveApp;
 end;
 
 end.

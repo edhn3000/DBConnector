@@ -14,7 +14,19 @@ uses
   U_DBEngine, U_DBEngineInterface;
 
 type
-{ TADODBEngine }
+  { TADODBQuery }
+  TADODBQuery = class(TDBQuery)
+  protected
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function GetConnection(): TCustomConnection; override;
+    procedure GetTableNames(List: TStrings; SystemObject: Boolean); override;
+  end;
+
+  { TADODBEngine }
   TADODBEngine = class(TDBEngine)
   private  
     FAdoConn : TADOConnection;
@@ -64,6 +76,32 @@ type
 implementation
 
 
+{ TADODBQuery }
+
+constructor TADODBQuery.Create;
+begin
+
+end;
+
+destructor TADODBQuery.Destroy;
+begin
+
+  inherited;
+end;
+
+function TADODBQuery.GetConnection: TCustomConnection;
+begin
+  Result := nil;
+  if FDataSet is TADOQuery then
+    Result := TADOQuery(FDataSet).Connection;
+end;
+
+procedure TADODBQuery.GetTableNames(List: TStrings; SystemObject: Boolean);
+begin
+  if FDataSet is TADOQuery then
+    TADOQuery(FDataSet).Connection.GetTableNames(List, SystemObject);
+end;
+
 { TADODBEngine }
 
 function TADODBEngine.BeginTrans: Integer;
@@ -99,6 +137,7 @@ begin
   // 对父类对象赋值
   FConnection := FAdoConn;
   FDataSet := FAdoQry;
+//  FDataSet.InitQuery(FAdoQry);
   FDBEngineType := dbetADO;
 end;
 
@@ -237,8 +276,7 @@ begin
       begin    
         while slst.Count < 3 do
           slst.Add('');
-        Result := Format(CONNSTR_SYBASE, [slst[0], slst[1], slst[2],
-                  sUser, sPwd]);
+        Result := Format(CONNSTR_SYBASE, [slst[2], slst[0], slst[1], sUser, sPwd]);
       end;
       dbtDBF:
       begin
@@ -247,7 +285,6 @@ begin
       else
       begin
         raise Exception.Create(ERROR_DBTYPE);
-        Result := sDSource;
       end;
     end;
   finally
@@ -264,6 +301,7 @@ begin
    
   FConnection := FAdoConn;
   FDataSet := FAdoQry;
+//  FDataSet.InitQuery(FAdoQry);
   Result := FAdoConn.Connected;
 end;
 
@@ -275,6 +313,7 @@ begin
    
   FConnection := FAdoConn;
   FDataSet := FAdoQry;
+//  FDataSet.InitQuery(FAdoQry);
   Result := FAdoConn.Connected;
 end;
 procedure TADODBEngine.doExecQuery(Ads: TDataSet; sSql: string);

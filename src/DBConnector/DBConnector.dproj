@@ -23,12 +23,15 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_UNIT_DEPRECATED>false</DCC_UNIT_DEPRECATED>
+			<DCC_SYMBOL_DEPRECATED>false</DCC_SYMBOL_DEPRECATED>
+			<DCC_IMPLICIT_STRING_CAST>false</DCC_IMPLICIT_STRING_CAST>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
 			<DCC_UsePackage>rtl;vcl;vclx;vclimg;vclactnband;dbrtl;vcldb;bdertl;vcldbx;vcltouch;xmlrtl;dsnap;dsnapcon;vclib;ibxpress;adortl;IndyCore;IndySystem;IndyProtocols;VclSmp;vclie;inet;websnap;webdsnap;inetdb;inetdbbde;inetdbxpress;soaprtl;vclribbon;dbexpress;DbxCommonDriver;DataSnapIndy10ServerTransport;DataSnapProviderClient;DataSnapServer;DbxClientDriver;DBXInterBaseDriver;DBXMySQLDriver;dbxcds;DBXFirebirdDriver;DBXSybaseASEDriver;DBXSybaseASADriver;DBXOracleDriver;DBXMSSQLDriver;DBXInformixDriver;DBXDb2Driver;SynEdit_R2010;TeeTree2D14Tee9;TeePro914;TeeUI914;Tee914;TeeLanguage914;TeeImage914;TeeWorld914;TeeGL914;TeeDB914;TeeMaker114;DBCtrl2010;CnPack_D2010;intrawebdb_100_140;Intraweb_100_140;bsfd2010;NTKOPkg;fHintTree;acnt2010_R</DCC_UsePackage>
 			<DCC_DcuOutput>dcu</DCC_DcuOutput>
-			<DCC_ExeOutput>..\MyTools\DBConnector</DCC_ExeOutput>
-			<DCC_UnitSearchPath>..\MyPub;..\MyPub\Common;..\MyPub\IO;..\MyPub\Log;..\MyPub\regex;..\MyPub\UI;..\MyPub\Office;..\MyPub\Console;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\Components\TfHintTree;..\Components\TfDBGrid;..\OtherPub;..\OtherPub\mysql;..\OtherPub\cnvcl;..\OtherPub\cnvcl\Source\Common;..\OtherPub\cnvcl\Source\Graphics;..\OtherPub\Synedit\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\OtherPub\AlphaControls\AlphaControls8.20dcu\D2010\;..\OtherPub\sqlite\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-			<DCC_DependencyCheckOutputName>..\MyTools\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
+			<DCC_ExeOutput>..\..\bin\DBConnector</DCC_ExeOutput>
+			<DCC_UnitSearchPath>..\MyPub;..\MyPub\Common;..\MyPub\IO;..\MyPub\Log;..\MyPub\regex;..\MyPub\UI;..\MyPub\Office;..\MyPub\Console;..\MyPub\DB;..\MyPub\DB\DBConnect;..\MyPub\DB\DBEngine;..\MyPub\regex;..\Components\TfHintTree;..\Components\TfDBGrid;..\OtherPub;..\Components\mysql;..\Components\cnvcl;..\Components\cnvcl\Source\Common;..\Components\cnvcl\Source\Graphics;..\Components\20130506154856_SynEdit.XE4.2013-4-25\Source\;..\Components\AlphaControls8.20dcu\D2010\;..\Components\ASqlite3Delphi2010\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_DependencyCheckOutputName>..\..\bin\DBConnector\DBConnector.exe</DCC_DependencyCheckOutputName>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<Version>7.0</Version>
@@ -73,11 +76,11 @@
 						<VersionInfo Name="CodePage">936</VersionInfo>
 					</VersionInfo>
 					<VersionInfoKeys>
-						<VersionInfoKeys Name="CompanyName"/>
+						<VersionInfoKeys Name="CompanyName">edhn</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">集成多数据库访问功能的数据库工具</VersionInfoKeys>
 						<VersionInfoKeys Name="FileVersion">0.9.7.1601</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
-						<VersionInfoKeys Name="LegalCopyright"/>
+						<VersionInfoKeys Name="LegalCopyright">edhn@163.com</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks"/>
 						<VersionInfoKeys Name="OriginalFilename"/>
 						<VersionInfoKeys Name="ProductName">DBConnector</VersionInfoKeys>
@@ -183,7 +186,7 @@
 			</DCCReference>
 			<DCCReference Include="U_DBTreeFunc.pas"/>
 			<DCCReference Include="U_DBAHelp.pas"/>
-			<DCCReference Include="..\MyPub\Office\U_ExcelExportor.pas"/>
+			<DCCReference Include="..\MyPub\Office\U_ExcelObject.pas"/>
 			<DCCReference Include="..\MyPub\DB\U_DBExport.pas"/>
 			<DCCReference Include="..\MyPub\U_Convertor.pas"/>
 			<DCCReference Include="..\MyPub\IO\U_TextFileWriter.pas"/>

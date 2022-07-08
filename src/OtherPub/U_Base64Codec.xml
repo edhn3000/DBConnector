@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<namespace name="U_Base64Codec">
+  <function name="Base64Encode" visibility="public" procflags="overload">
+    <parameters>
+      <parameter name="InText" type="string" paramflags="const" />
+      <retval type="string" />
+    </parameters>
+  </function>
+  <function name="Base64Decode" visibility="public" procflags="overload">
+    <parameters>
+      <parameter name="InText" type="string" paramflags="const" />
+      <retval type="string" />
+    </parameters>
+  </function>
+  <function name="CalcEncodedSize" visibility="public">
+    <parameters>
+      <parameter name="InSize" type="Cardinal" />
+      <retval type="Cardinal" />
+    </parameters>
+  </function>
+  <function name="CalcDecodedSize" visibility="public">
+    <parameters>
+      <parameter name="InBuffer" paramflags="const" />
+      <parameter name="InSize" type="Cardinal" />
+      <retval type="Cardinal" />
+    </parameters>
+  </function>
+  <procedure name="Base64Encode" visibility="public" procflags="overload">
+    <parameters>
+      <parameter name="InBuffer" paramflags="const" />
+      <parameter name="InSize" type="Cardinal" />
+      <parameter name="OutBuffer" paramflags="var" />
+    </parameters>
+  </procedure>
+  <function name="Base64Decode" visibility="public" procflags="overload">
+    <parameters>
+      <parameter name="InBuffer" paramflags="const" />
+      <parameter name="InSize" type="Cardinal" />
+      <parameter name="OutBuffer" paramflags="var" />
+      <retval type="Boolean" />
+    </parameters>
+  </function>
+  <procedure name="Base64Encode" visibility="public" procflags="overload">
+    <parameters>
+      <parameter name="InText" type="PAnsiChar" paramflags="const" />
+      <parameter name="OutText" type="PAnsiChar" paramflags="var" />
+    </parameters>
+  </procedure>
+  <procedure name="Base64Encode" visibility="public" procflags="overload">
+    <parameters>
+      <parameter name="InText" type="string" paramflags="const" />
+      <parameter name="OutText" type="string" paramflags="var" />
+    </parameters>
+  </procedure>
+  <procedure name="Base64Decode" visibility="public" procflags="overload">
+    <parameters>
+      <parameter name="InText" type="PAnsiChar" paramflags="const" />
+      <parameter name="OutText" type="PAnsiChar" paramflags="var" />
+    </parameters>
+  </procedure>
+  <procedure name="Base64Decode" visibility="public" procflags="overload">
+    <parameters>
+      <parameter name="InText" type="string" paramflags="const" />
+      <parameter name="OutText" type="string" paramflags="var" />
+    </parameters>
+  </procedure>
+</namespace>

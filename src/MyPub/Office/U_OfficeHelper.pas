@@ -1,4 +1,3 @@
-unit U_OfficeHelper;
 {
  @author  fengyq
  @comment Office助手单元
@@ -7,6 +6,7 @@ unit U_OfficeHelper;
  @version 1.0
  @version 2015/11/09
 }
+unit U_OfficeHelper;
 
 interface
 
@@ -27,10 +27,11 @@ const
   WORD_FIND_MAX_LEN = 255;   // 查找文字时的最大长度
 
 type
-  { TOfficeHelper }
+  { TOfficeHelper 保存office对象，完成对office对象的各种操作 }
   TOfficeHelper = class
   protected
     FUseActiveApp: Boolean;   // 是否使用已激活的Application对象
+    FIsAppInited: Boolean;    // 是否创建了Application程序对象  lazy初始化
     FIsInstalled: Boolean;    // Office是否已安装 实现类初始化时对其赋值
     FApplication: OleVariant; // Office的Application
     FDocument: OleVariant;    // 当前文档
@@ -41,12 +42,18 @@ type
 
     function GetShowComment(): Boolean;
     procedure SetShowComment(value: Boolean);
+    function GetSelection(): OleVariant;
   protected
     function PosFrom(sSub, S: String; nFrom: Integer;ignoreCase: Boolean): Integer;
     function GetFitFindText(text: String): string;
 
+    // 初始化Application，执行成功返回true否则false，如果已经初始化过也返回true
+    function InitApplication: Boolean; virtual; abstract;
+    // 根据传入的className，创建ole对象
     function CreateApplication(useActiveApp: Boolean; className: String): Boolean; virtual;
-    function CheckApplication(): Boolean;virtual;
+//    function CheckApplication(): Boolean;virtual;
+
+    function GetParagraphNoByPos(posInDoc: Integer; beginPaNo, endPaNo: Integer): Integer; overload;
   public
     property ShowComment: Boolean read GetShowComment write SetShowComment;
     property CloseOnFree: Boolean read FCloseOnFree write FCloseOnFree;
@@ -54,18 +61,31 @@ type
     property Document: OleVariant read FDocument;
     property Window: OleVariant read FWindow;
     property Opend: Boolean read FOpend;
+    property Selection: OleVariant read GetSelection;
 
-    // 传入已激活的Application对象
-    constructor Create(ActiveApp: OleVariant); overload; virtual;
-    constructor Create(doc: OleVariant; window: OleVariant); overload; virtual;
+    constructor Create;
     destructor Destroy;override;
+
+    // 初始化新的的application
+    function Init(useActiveApp: Boolean = false): Boolean; virtual;
+    // 用已有的application初始化
+    function InitByApp(activeApp: OleVariant): Boolean; virtual;
+    // 用已有的doc初始化
+    function InitByDoc(doc: OleVariant): Boolean; overload;  virtual;
+    // 用已有的doc、window初始化
+    function InitByDoc(doc: OleVariant; window: OleVariant): Boolean; overload; virtual;
 
     // Office是否已安装
     function IsInstalled: Boolean; virtual;
 
+{-------------------------------------------------------------------------------
+     App、Doc、Window操作
+-------------------------------------------------------------------------------}
+
     // 通过ScreenUpdating控制WordApp是否自动刷新UI
     procedure BeginUpdate;
     procedure EndUpdate;
+    function GetDocumentWindow(doc: IDispatch): IDispatch; virtual; abstract;
 
 {-------------------------------------------------------------------------------
     文档的创建保存关闭等操作
@@ -135,8 +155,9 @@ type
     段落操作
 -------------------------------------------------------------------------------}
     // 从给定位置获取到所在段落号
-    function GetParagraphNoByPos(posInDoc: Integer; beginPaNo, endPaNo: Integer): Integer; overload;
     function GetParagraphNoByPos(posInDoc: Integer): Integer; overload;
+
+    function GetPageNoByPos(posInDoc: Integer): Integer;
 
 {-------------------------------------------------------------------------------
     控件按钮操作
@@ -180,30 +201,84 @@ end;
 
 { TOfficeHelper }
 
-constructor TOfficeHelper.Create(ActiveApp: OleVariant);
+constructor TOfficeHelper.Create;
 begin
-  FApplication := ActiveApp;
+  FUseActiveApp := False;
+  FIsAppInited := False;
+  FIsInstalled := False;
+  FOpend := False;
+  FCloseOnFree := not FUseActiveApp;
+end;
+
+destructor TOfficeHelper.Destroy;
+begin
+  if FIsAppInited then begin
+    // 如果文档处于打开状态，检查是否需自动关闭
+    if FCloseOnFree then begin
+      try
+        if FOpend then
+          CloseFile(False);
+      except
+        on e: Exception do
+          OutputDebugString(PChar('TOfficeHelper.Destroy close file error！' + e.Message));
+      end;
+    end;
+
+    try
+      if not FUseActiveApp then begin
+        FApplication.NormalTemplate.Saved := True; // 为了不保存NormalTemplate
+        FApplication.Quit(wdDoNotSaveChanges);
+      end;
+    except
+      on e: Exception do
+        OutputDebugString(PChar('TOfficeHelper.Destroy quit application error！' + e.Message));
+    end;
+
+    FApplication := Unassigned;
+    FDocument := Unassigned;
+    FIsAppInited := False;
+  end;
+
+  inherited;
+end;
+
+function TOfficeHelper.Init(useActiveApp: Boolean): Boolean;
+begin
+  FUseActiveApp := useActiveApp;
+  InitApplication;
+end;
+
+function TOfficeHelper.InitByApp(activeApp: OleVariant): Boolean;
+begin
+  FApplication := activeApp;
   FUseActiveApp := True;
+  FIsAppInited := True;
+  FIsInstalled := True;
   if FApplication.Documents.Count > 0 then begin
     FDocument := FApplication.ActiveDocument;
     FWindow := FApplication.ActiveWindow;
+    FOpend := True;
   end;
-  FCloseOnFree := False;  // 外部传入的WordApp对象，默认不管关闭
+  FCloseOnFree := not FUseActiveApp;  // 外部传入的WordApp对象，默认不管关闭
+  Result := True;
 end;
 
-constructor TOfficeHelper.Create(doc: OleVariant; window: OleVariant);
+function TOfficeHelper.InitByDoc(doc: OleVariant): Boolean;
+begin
+  FWindow := GetDocumentWindow(doc);
+  Result := InitByDoc(doc, FWindow);
+end;
+
+function TOfficeHelper.InitByDoc(doc: OleVariant; window: OleVariant): Boolean;
 begin
   FDocument := doc;
   FWindow := window;
   FApplication := doc.Application;
   FUseActiveApp := True;
-  FCloseOnFree := False;
-end;
-
-destructor TOfficeHelper.Destroy;
-begin
-
-  inherited;
+  FIsAppInited := True;
+  FIsInstalled := True;
+  FOpend := True;
+  FCloseOnFree := not FUseActiveApp;
 end;
 
 function TOfficeHelper.CreateApplication(useActiveApp: Boolean; className: String): Boolean;
@@ -225,6 +300,7 @@ begin
     end;
     Result := True;
     FIsInstalled := Result;
+    FIsAppInited := Result;
   except
     on e: Exception do begin
       OutputDebugString(PChar(Format('CreateApplication using (%s) fail! %s' ,[className, e.Message])));
@@ -232,21 +308,21 @@ begin
   end;
 end;
 
-function TOfficeHelper.CheckApplication(): Boolean;
-var
-  S: string;
-begin
-  Result := not VarIsNull(FApplication);
-
-  if Result then
-  begin
-    try
-      S := FApplication.Version;
-    except
-      Result := False;
-    end;
-  end;
-end;
+//function TOfficeHelper.CheckApplication(): Boolean;
+//var
+//  S: string;
+//begin
+//  Result := not VarIsNull(FApplication);
+//
+//  if Result then
+//  begin
+//    try
+//      S := FApplication.Version;
+//    except
+//      Result := False;
+//    end;
+//  end;
+//end;
 
 function TOfficeHelper.IsInstalled: Boolean;
 begin
@@ -265,6 +341,8 @@ end;
 
 procedure TOfficeHelper.OpenFile(sFileName: String);
 begin
+  InitApplication;
+
   OpenFile(sFileName, False);
 end;
 
@@ -350,6 +428,12 @@ begin
   Result := s;
 end;
 
+
+function TOfficeHelper.GetSelection(): OleVariant;
+begin
+  Result := FWindow.Selection;
+end;
+
 function TOfficeHelper.AddTable(rowCount: integer; colCount: Integer): OleVariant;
 begin
   Result := FDocument.Tables.Add( FWindow.Selection.Range, rowCount, colCount, EmptyParam, EmptyParam );
@@ -406,6 +490,17 @@ begin
   frontNo := 1;
   endNo := FDocument.Paragraphs.Count;
   Result := GetParagraphNoByPos(posInDoc, frontNo, endNo);
+end;
+
+function TOfficeHelper.GetPageNoByPos(posInDoc: Integer): Integer;
+var
+  startPos: Integer;
+begin
+  startPos := posInDoc;
+  if posInDoc > 0 then
+    startPos := posInDoc - 1;
+
+  Result := FDocument.Range(startPos, posInDoc).Information[wdActiveEndPageNumber];
 end;
 
 procedure TOfficeHelper.ShowDocument;

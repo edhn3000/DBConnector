@@ -810,14 +810,10 @@ begin
       if node = nil then
         node := nodeDBS.AddChild(C_sDBConfig_Node_DB);
 
-      SetChildNodeText(node, C_sDBConfig_Node_DBShownName,
-        dbcfg.DBShownName);  
-      SetChildNodeText(node, C_sDBConfig_Node_DBType,
-        DBTypeToStr(dbcfg.DBType, False));
-      SetChildNodeText(node, C_sDBConfig_Node_DBEngineType,
-        DBEngineTypeToStr(dbcfg.DBEngineType, False));
-      SetChildNodeText(node, C_sDBConfig_Node_DataSource,
-        dbcfg.FDataSource);
+      SetChildNodeText(node, C_sDBConfig_Node_DBShownName, dbcfg.DBShownName);
+      SetChildNodeText(node, C_sDBConfig_Node_DBType, DBTypeToStr(dbcfg.DBType, False));
+      SetChildNodeText(node, C_sDBConfig_Node_DBEngineType, DBEngineTypeToStr(dbcfg.DBEngineType, False));
+      SetChildNodeText(node, C_sDBConfig_Node_DataSource,dbcfg.FDataSource);
       SetChildNodeText(node, C_sDBConfig_Node_UserName, dbcfg.UserName);
       SetChildNodeText(node, C_sDBConfig_Node_Password, dbcfg.Password);
       if dbcfg.IsFixDB then

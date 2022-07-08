@@ -1,9 +1,15 @@
+{
+ @author  fengyq
+ @comment Word助手单元
+ @version 1.0
+ @version 2015/11/09
+}
 unit U_WordHelper;
 
 interface
 
 uses
-  SysUtils, Variants, Classes, Controls, Forms,
+  Windows, SysUtils, Variants, Classes, Controls, Forms,
   ComCtrls, ComObj, ActiveX, Word_TLB, Office_TLB, U_OfficeHelper;
 
 type
@@ -14,10 +20,11 @@ type
   protected
 
   protected
+    function InitApplication: Boolean; override;
 
   public
-    constructor Create; overload;
-    constructor Create(useActiveApp: Boolean);overload;
+    constructor Create;
+
     destructor Destroy;override;
 
     // 打开Word文档
@@ -26,26 +33,37 @@ type
     // 关闭Word文档
     procedure CloseFile(bSave: Boolean = false); override;
 
-    function ExecuteControl(controlType: TOleEnum; tag: String): Boolean; override;
+    function GetDocumentWindow(doc: IDispatch): IDispatch; override;
 
+    function ExecuteControl(controlType: TOleEnum; tag: String): Boolean; override;
   end;
 
 implementation
 
-uses
-  Windows;
 
 { TWordHelper }
 
 constructor TWordHelper.Create;
 begin
-  FOpend := False;
-  Create(False);
+  inherited Create;
 end;
 
-constructor TWordHelper.Create(useActiveApp: Boolean);
+destructor TWordHelper.Destroy;
 begin
-  if CreateApplication(useActiveApp, 'Word.Application') then begin
+
+  inherited;
+end;
+
+function TWordHelper.InitApplication: Boolean;
+begin
+  if FIsAppInited then begin
+    Result := True;
+    Exit;
+  end;
+
+  FIsInstalled := False;
+  FIsAppInited := CreateApplication(FUseActiveApp, 'Word.Application');
+  if FIsAppInited then begin
     // 不保存到Normal.dotm，避免文档被重复打开后在关闭时报错
     FApplication.Options.SaveNormalPrompt := False;
   //  FWordApp := WordApplication(IDispatch(FApplication));
@@ -54,54 +72,31 @@ begin
   //    //
   //  end;
     FIsInstalled := True;
+    FIsAppInited := True;
     FCloseOnFree := not FUseActiveApp;
   end;
-end;
-
-destructor TWordHelper.Destroy;
-begin
-  if FCloseOnFree then
-  begin
-    try
-      if FOpend then
-        CloseFile(False);
-    except
-      on e: Exception do
-        OutputDebugString(PChar('TWordHelper.Destroy close file error！' + e.Message));
-    end;
-  end;
-  try
-    if not FUseActiveApp then begin
-      FApplication.NormalTemplate.Saved := True; // 为了不保存NormalTemplate
-      FApplication.Quit(wdDoNotSaveChanges);
-    end;
-  except
-    on e: Exception do
-      OutputDebugString(PChar('TWordHelper.Destroy quit application error！' + e.Message));
-  end;
-
-  FApplication := Unassigned;
-  FDocument := Unassigned;
-  inherited;
+  Result := FIsAppInited;
 end;
 
 procedure TWordHelper.NewFile(sFileName: String);
 begin
+  InitApplication;
+
   FFileName := sFileName;
   FApplication.Documents.Add;
-//  FWordApp := WordApplication(IDispatch(FApplication));
   FDocument := FApplication.ActiveDocument;
 end;
 
 procedure TWordHelper.OpenFile(sFileName: String; readOnly: Boolean);
 begin
+  InitApplication;
+
   FFileName := sFileName;
   if readOnly then
     FApplication.Documents.Open(sFileName, False, True)
   else
     FApplication.Documents.Open(sFileName);
   FApplication.Options.SaveNormalPrompt := False;
-//  FWordApp := WordApplication(IDispatch(FApplication));
   FDocument := FApplication.ActiveDocument;
   FWindow := FApplication.ActiveWindow;
   FOpend := True;
@@ -118,6 +113,30 @@ begin
     FDocument.Close(wdDoNotSaveChanges);
   end;
   FOpend := False;
+end;
+
+function TWordHelper.GetDocumentWindow(doc: IDispatch): IDispatch;
+var
+  i: Integer;
+  wndIndex: OleVariant;
+  d: Word_TLB._Document;
+  wnd: Word_TLB.Window;
+begin
+  d := (doc as Word_TLB._Document);
+  Result := nil;
+  if d.Windows.Count = 1 then begin
+    wndIndex := 1;
+    Result := d.Windows.Item(wndIndex);
+  end else begin
+    for i := 1 to d.Windows.Count do begin
+      wndIndex := i;
+      wnd := d.Windows.Item(wndIndex);
+      if wnd.Document = doc then begin
+        Result := wnd;
+        System.Break;
+      end;
+    end;
+  end;
 end;
 
 function TWordHelper.ExecuteControl(controlType: TOleEnum; tag: String): Boolean;

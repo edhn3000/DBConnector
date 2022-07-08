@@ -31,7 +31,7 @@ type
 implementation
 
 uses
-  SysUtils, jpeg, Variants, U_PlanarList, U_ExcelExportor;
+  SysUtils, jpeg, Variants, U_PlanarList, U_ExcelObject;
 
 { TExportUtil }
 
@@ -106,10 +106,10 @@ var
   slstPlanar: TPlanarStringList;
   slstItem: TStringList;
   fieldItem: TFieldItem;
-  ExcelExp: TExcelExportor;
+  ExcelExp: TExcelApplication;
 begin
   try
-    ExcelExp := TExcelExportor.Create;
+    ExcelExp := TExcelApplication.Create;
     ExcelExp.AddWorkSheet;
     if sSheetName <> '' then
       ExcelExp.ActiveSheet.Name := sSheetName;
@@ -168,7 +168,7 @@ begin
 
     AQ.First;
     AQ.EnableControls;
-    ExcelExp.SaveFile(sFileName);
+    ExcelExp.SaveAs(sFileName);
     ExcelExp.Free;
 
     Result := True;

@@ -64,6 +64,7 @@ begin
 
   FConnection := TCustomConnection(FSqlConn);
   FDataSet := FSqlQry;
+//  FDataSet.InitQuery(FSqlQry);
 end;
 
 destructor TSQLiteDBEngine.Destroy;

@@ -32,6 +32,7 @@ type
   TRegexUtil = class(TObject)
   public
     class function ConvertRegex(sPattern: string):string;
+    class function Match(sPattern: String; index: Integer; sContent: String): Boolean;
 {-------------------------------------------------------------------------------
   过程名:    MatchFirst  只匹配第一次Match，返回指定index的结果
   作者:      fengyq
@@ -100,6 +101,12 @@ begin
   finally
     mrList.Free;
   end;
+end;
+
+class function TRegexUtil.Match(sPattern: String; index: Integer;
+  sContent: String): Boolean;
+begin
+  Result := '' <> MatchFirstStr(sPattern, index, sContent);
 end;
 
 class function TRegexUtil.MatchFirst(sPattern: String; index: Integer;

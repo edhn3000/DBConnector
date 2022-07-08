@@ -22,7 +22,7 @@ interface
 uses
   ADODB, DB, DBTables, Classes, Contnrs, Variants,
   SqlExpr, SimpleDS,
-  U_DBConnectInterface, U_DBEngineInterface,  
+  U_DBConnectInterface, U_DBEngineInterface, U_DBEngine,
   U_TableInfo, U_FieldInfo,
   U_fStrUtil, U_DBCommand,
   U_PlanarList, U_JSON, U_TextFileWriter;
@@ -50,6 +50,7 @@ type
   private
     FDBType        : TDBType;                    // 数据库类型
     FDBEngine      : IDBEngine;                  // 数据库引擎对象
+    FDBQuery       : TDBQuery;
     FEngineShared  : Boolean;                    // 数据库引擎是否共享状态，共享的引擎不可被Free
 
     FCurrExecLine  : Integer;                    // 上次产生错误的行号
@@ -1293,6 +1294,7 @@ procedure TDBConnect.GetTableNames(List: TStrings;
 begin
   if IsQryInvalid(AQry) then
     AQry := DBEngine.GetDataSet;
+
   if AQry is TADOQuery then
     TADOQuery(AQry).Connection.GetTableNames(List, FSystemObject)
   else if AQry is TQuery then
@@ -1303,7 +1305,7 @@ begin
     TSQLDataSet(AQry).SQLConnection.GetTableNames(List, FSystemObject)
   else if AQry is TSimpleDataSet then
     TSimpleDataSet(AQry).Connection.GetTableNames(List, FSystemObject);
-end;  
+end;
 
 procedure TDBConnect.GetIndexNames(List: TStrings);
 begin

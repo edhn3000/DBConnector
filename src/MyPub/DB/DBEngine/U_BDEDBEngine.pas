@@ -14,8 +14,19 @@ uses
   U_DBEngine, U_DBEngineInterface;
 
 type
+  { TBDEDBQuery }
+  TBDEDBQuery = class(TDBQuery)
+  protected
 
-{ TBDEDBEngine }
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function GetConnection(): TCustomConnection; override;
+    procedure GetTableNames(List: TStrings; SystemObject: Boolean); override;
+  end;
+
+  { TBDEDBEngine }
   TBDEDBEngine = class(TDBEngine)
   private
     FDataBase: TDataBase;
@@ -56,7 +67,33 @@ type
     procedure SetDataSetMaxRecords(Ads: TDataSet; nMaxRecords: Integer);override;
   end;
 
-implementation   
+implementation
+
+{ TBDEDBQuery }
+
+constructor TBDEDBQuery.Create;
+begin
+
+end;
+
+destructor TBDEDBQuery.Destroy;
+begin
+
+  inherited;
+end;
+
+function TBDEDBQuery.GetConnection: TCustomConnection;
+begin
+  Result := nil;
+  if FDataSet is TQuery then
+    Result := TQuery(FDataSet).Database;
+end;
+
+procedure TBDEDBQuery.GetTableNames(List: TStrings; SystemObject: Boolean);
+begin
+  if FDataSet is TQuery then
+    TQuery(FDataSet).Database.GetTableNames(List, SystemObject)
+end;
 
 { TBDEDBEngine }
 
@@ -96,6 +133,7 @@ begin
   // 对父类对象赋值
   FConnection := FDataBase;
   FDataSet := FBDEQry;
+//  FDataSet.InitQuery(FBDEQry);
   FDBEngineType := dbetBDE;
 end;
 

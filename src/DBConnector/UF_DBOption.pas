@@ -65,7 +65,6 @@ type
     Label7: TLabel;
     cbbSybDataBase: TComboBox;
     Label8: TLabel;
-    edtMysqlCharset: TEdit;
     tsSqlite: TTabSheet;
     Label9: TLabel;
     edtSqliteDBFile: TEdit;
@@ -76,6 +75,7 @@ type
     edtDBFSource: TEdit;
     btnChooseDBF: TButton;
     Label12: TLabel;
+    cbbMslCharset: TComboBox;
     procedure FormShow(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnChooseDBClick(Sender: TObject);
@@ -151,8 +151,8 @@ const
   C_nDBEngineTypeItemIndex_Auto = 0;
   C_nDBEngineTypeItemIndex_Ado  = 1;
   C_nDBEngineTypeItemIndex_Bde  = 2;
-  C_nDBEngineTypeItemIndex_DBExpress  = 9;
   C_nDBEngineTypeItemIndex_SQLite  = 3;
+  C_nDBEngineTypeItemIndex_DBExpress  = 9;
   CBB_DBENGINETYPE_ITEMS: array[0..3] of String = ('自动选择', 'ADO驱动', 'BDE驱动', 'SQLite驱动');
 
   C_PageIndex_Access = 0;
@@ -167,6 +167,19 @@ const
 
   C_nSybDBTypeItemIndex_ASE = 0;
   C_nSybDBTypeItemIndex_ASA = 1;
+
+  CHARSETS_COMMON: array [0..4] of string = ('GB2312', 'GBK', 'ISO-8859-1', 'UTF-8', 'UTF-16');
+  // CP20935=GB2312, CP936=GBK, CP1252=ISO-8859-1, CP65001=UTF-8,
+  CHARSETS_CODEPAGE: array [0..3] of string = ('CP20936', 'CP936', 'CP1252', 'CP65001');
+
+procedure InitCharsetCommon(strs: TStrings);
+var
+  i: Integer;
+begin
+  strs.Clear;
+  for i := Low(CHARSETS_COMMON) to High(CHARSETS_COMMON) do
+    strs.Add(CHARSETS_COMMON[i]);
+end;
 
 procedure TF_DBOption.SetPageIndex(index: Integer);
 begin
@@ -236,6 +249,7 @@ begin
       begin
         cbbDBType.ItemIndex := C_nDBTypeItemIndex_Sybase;
         SetPageIndex(C_PageIndex_Sybase);
+        edtSybPort.Text := DBconfig.SybPort;
         cbbUser.Text := DBconfig.SybUser;
         edtPwd.Text := DBconfig.getEncodePwd(dbtSyBase);
 //        cbbSybaseType.ItemIndex := SybType;
@@ -281,7 +295,7 @@ begin
 
     edtmslHost.Text := DBconfig.mslHost;
     edtmslDataBase.Text := DBconfig.mslDataBase;
-    edtMysqlCharset.Text := DBconfig.mslCharset;
+    cbbMslCharset.Text := DBconfig.mslCharset;
 
     edtSqliteDBFile.Text := DBconfig.sltDB;
 
@@ -352,6 +366,7 @@ begin
       begin
         DBconfig.DBType := dbtSyBase;
         DBconfig.SybUser := cbbUser.Text;
+        DBconfig.SybPort := edtSybPort.Text;
         DBconfig.setEncodePwd(dbtSyBase, edtPwd.Text);
         CbxIndexToDBType(DBconfig.DBType);
       end;
@@ -389,7 +404,7 @@ begin
 
     DBconfig.mslHost := edtmslHost.Text;
     DBconfig.mslDataBase := edtmslDataBase.Text;
-    DBconfig.mslCharset := edtMysqlCharset.Text;
+    DBconfig.mslCharset := cbbMslCharset.Text;
 
     DBconfig.sltDB := edtSqliteDBFile.Text;
     DBconfig.dbfDB := edtDBFSource.Text;
@@ -420,6 +435,13 @@ begin
     else if (pgcOptions.Pages[DBTYPE_PAGEINDEX_MAP[i]].TabVisible) then
       cbbDBType.Items.Add(CBB_DBTYPE_ITEMS[i]);
   end;
+
+  cbbEngineType.Items.Clear;
+  for I := 0 to High(CBB_DBENGINETYPE_ITEMS) do begin
+    cbbEngineType.Items.Add(CBB_DBENGINETYPE_ITEMS[i]);
+  end;
+
+  InitCharsetCommon(cbbMslCharset.Items);
 end;
 
 procedure TF_DBOption.FormShow(Sender: TObject);
@@ -652,7 +674,7 @@ begin
           SetPageIndex(C_PageIndex_MySQL);
           edtmslHost.Text := mslHost;
           edtmslDataBase.Text := mslDataBase;
-          edtMysqlCharset.Text := mslCharset;
+          cbbMslCharset.Text := mslCharset;
         end;
         dbtSqlite:
         begin
